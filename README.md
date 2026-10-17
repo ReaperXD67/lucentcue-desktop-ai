@@ -4,7 +4,7 @@
 
 An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Bring an OpenRouter, OpenAI, or Gemini key, keep your workspace a shortcut away, and choose exactly what you send.
 
-**First release candidate · MIT · Electron + React + TypeScript.** Windows, macOS, and Linux packaging targets are configured. See [release status](#release-status) for what has been verified. Source: [ReaperXD67/lucentcue-desktop-ai](https://github.com/ReaperXD67/lucentcue-desktop-ai).
+**Developer preview · MIT · Electron + React + TypeScript.** [Download unsigned packages](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.1.0-preview.1) for Windows, macOS, and Linux. See [release status](#release-status) for verified checks and remaining work.
 
 ![LucentCue workspace with conversation sidebar, screenshot tools, and free model selection](docs/images/workspace.png)
 
@@ -105,11 +105,11 @@ Build artifacts go to `release/`. Package on the target OS for release testing. 
 
 ## Release status
 
-Type checking, tests, and builds pass in GitHub CI on Windows, macOS, and Linux. Local Windows checks pass: 78 offline tests, 4 real Chromium integration tests, and 14 Electron smoke checks, including native capture-protection toggling. The unsigned Windows installer and its bundled browser-setup helper have been verified. The dependency audit reports zero known vulnerabilities. macOS/Linux desktop runtime testing and signed releases remain pending. Provider requests use mocked responses in automated checks; live account/model completions still need a key and verification.
+Verified 17 October 2026: [CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045557690) and [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045558099) pass on Windows, macOS, and Linux. Packages include Windows x64 NSIS, macOS x64/arm64 DMGs, and Linux x64 AppImage/deb. Local Windows checks pass: 78 offline tests, 4 real Chromium integration tests, and 14 Electron smoke checks, including native capture-protection toggling. The packaged Windows browser helper also passed. The dependency audit reports zero known vulnerabilities. Desktop runtime testing on macOS/Linux, code signing, notarization, and live provider completions with a real key remain pending.
 
 ## Contributing and next steps
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md), run the relevant checks, and describe reproducible behavior without secrets or private screenshots. Keep the main README and affected guides aligned with significant changes. Architecture and trust boundaries are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md), run the relevant checks, and describe reproducible behavior without secrets or private screenshots. Keep the main README and affected guides aligned with significant changes. Architecture and trust boundaries are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Planned work includes live transcription with clear recording consent, a hosted free-service relay with authentication and quotas, broader model capability checks, signed releases, and validation on macOS/Linux. These are roadmap items, not existing functionality.
 
