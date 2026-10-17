@@ -1,8 +1,12 @@
 # LucentCue
 
+[![CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/workflows/ci.yml)
+
 An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Bring an OpenRouter, OpenAI, or Gemini key, keep your workspace a shortcut away, and choose exactly what you send.
 
-**First release candidate · MIT · Electron + React + TypeScript.** Windows, macOS, and Linux packaging targets are configured. Validation is in progress; see [release status](#release-status). The proposed public repository name is `lucentcue-desktop-ai`.
+**First release candidate · MIT · Electron + React + TypeScript.** Windows, macOS, and Linux packaging targets are configured. See [release status](#release-status) for what has been verified. Source: [ReaperXD67/lucentcue-desktop-ai](https://github.com/ReaperXD67/lucentcue-desktop-ai).
+
+![LucentCue workspace with conversation sidebar, screenshot tools, and free model selection](docs/images/workspace.png)
 
 ## What it does
 
@@ -12,26 +16,29 @@ An open-source desktop AI assistant for questions, screenshot context, and pract
 - Captures a display from the UI or a configurable shortcut, then lets you preview or remove the screenshot before sending it to a vision model.
 - Opens a visible Chromium browser, reads page context for review, and fills a selected text field with text you approve. You submit in the browser.
 - Provides configurable show/hide and screenshot shortcuts, optional always-on-top, a tray menu, and Markdown export.
+- Offers optional OS capture protection on Windows/macOS, with clear platform limitations.
 - Keeps conversations in memory by default; optional local history excludes screenshot images.
 
 This is an original implementation inspired by a desktop-assistant workflow. No Pluely code or assets were copied and the supplied installer was not executed. See [research and provenance](docs/RESEARCH.md).
 
 ## Quickstart
 
-Use **Node.js 24 LTS** and npm. Run these commands in the project directory; PowerShell works on Windows:
+Installed users can open **Browser assist → Set up assistant browser** to download optional Chromium. This uses the bundled Electron runtime and does not require system Node.js or npm. Chat and screenshots work independently of that download.
+
+To run from source, use **Node.js 24 LTS** and npm. Run these commands in the project directory; PowerShell works on Windows:
 
 ```powershell
 npm ci
 npm run dev
 ```
 
-For browser assistance, download Playwright's Chromium once before opening the assistant browser:
+For browser assistance during development, either use the in-app setup button or download Playwright's Chromium once:
 
 ```powershell
 npm run browser:install
 ```
 
-Chromium is optional for chat and screenshots. It is a separate download and is not bundled into the desktop installer. Linux may need additional Playwright system libraries; see [browser setup](docs/BROWSER.md#setup).
+Chromium is a separate download and is not bundled into the desktop installer. Linux may need additional Playwright system libraries; see [browser setup](docs/BROWSER.md#setup).
 
 `npm run dev` starts Vite and the Electron desktop app. Renderer changes reload during development; restart the command after editing desktop code. `npm run dev:ui` opens only an interface preview: it cannot store keys, take screenshots, control Chromium, or produce live answers.
 
@@ -71,20 +78,21 @@ API requests run in Electron's main process and go directly to the selected prov
 
 Provider keys are encrypted with Electron's OS-backed `safeStorage` when available. If secure OS storage is unavailable, including Linux's `basic_text` backend, keys remain in memory for the session and Settings shows a notice. The renderer receives only configured/not-configured status after saving.
 
-History is **off by default**. When enabled, up to 40 conversations are stored as local JSON under Electron's application-data directory in `local/`; this text history and settings are not encrypted. Turning history off removes the saved history file. You can also delete history in Settings. Screenshot images stay in session memory and are omitted from saved history and Markdown exports. Exported text is saved to the location you choose.
+History is **off by default**. When enabled, up to 40 conversations are stored as local JSON under Electron's application-data directory in `local/`; this text history and settings are not encrypted. Each saved conversation keeps recent text within 100 messages and 240,000 characters; the serialized history file is limited to 8 MB in UTF-8. Turning history off removes the saved file. You can also delete history in Settings. Screenshot images stay in session memory and are omitted from saved history and Markdown exports. Exported text is saved to the location you choose.
 
-LucentCue is a normal visible desktop process. It does not hide processes, evade monitoring, or promise universal invisibility in recordings. The current app does not implement capture exclusion. Review screenshots and page context before sending them.
+**Settings → Exclude window from screen capture** enables optional OS capture protection, off by default. Windows and macOS support the API; Linux does not. Protection is best effort: modern macOS apps using ScreenCaptureKit can ignore it, and other capture methods may still see the window. Test your actual sharing setup. LucentCue remains a normal discoverable desktop process. See [Electron's documented limitations](https://www.electronjs.org/docs/latest/api/browser-window#winsetcontentprotectionenable-macos-windows).
 
 ## Checks and packaging
 
 ```powershell
+npm run format:check
 npm run typecheck
 npm test
 npm run build
 npm run test:desktop
 ```
 
-`npm test` covers provider streaming/free-model rules, storage, and browser-controller behavior. Optional real Chromium integration checks and their environment flag are documented in [browser verification](docs/BROWSER.md#verification). `test:desktop` is the desktop smoke workflow; its validation result is pending below.
+`npm test` covers provider streaming/free-model rules, storage, browser-controller behavior, and browser setup. Optional real Chromium integration checks and their environment flag are documented in [browser verification](docs/BROWSER.md#verification). `test:desktop` exercises the desktop runtime; results are recorded below.
 
 | Command | Output |
 | --- | --- |
@@ -93,15 +101,15 @@ npm run test:desktop
 | `npm run dist:mac` | macOS x64 / arm64 DMG targets |
 | `npm run dist:linux` | Linux x64 AppImage / deb targets |
 
-Build artifacts go to `release/`. Package on the target OS for release testing. Code signing, macOS notarization, automatic updates, and bundled Chromium setup are not configured.
+Build artifacts go to `release/`. Package on the target OS for release testing. Code signing, macOS notarization, and automatic updates are not configured. Optional Chromium setup is available in the app; browser binaries are downloaded separately.
 
 ## Release status
 
-Windows build, automated tests, desktop smoke, and packaging validation: **pending final verification**. macOS and Linux runtime/package validation: **not yet performed**. Provider requests are covered with mocked responses; live account/model completions still need a key and verification. This status must be updated with actual outcomes before publishing a release.
+Type checking, tests, and builds pass in GitHub CI on Windows, macOS, and Linux. Local Windows checks pass: 78 offline tests, 4 real Chromium integration tests, and 14 Electron smoke checks, including native capture-protection toggling. The unsigned Windows installer and its bundled browser-setup helper have been verified. The dependency audit reports zero known vulnerabilities. macOS/Linux desktop runtime testing and signed releases remain pending. Provider requests use mocked responses in automated checks; live account/model completions still need a key and verification.
 
 ## Contributing and next steps
 
-Start with `npm ci`, run the checks above, and describe reproducible behavior in a pull request or issue without including secrets or private screenshots. Keep the main README and affected guides aligned with significant changes. Architecture and trust boundaries are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), run the relevant checks, and describe reproducible behavior without secrets or private screenshots. Keep the main README and affected guides aligned with significant changes. Architecture and trust boundaries are in [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Planned work includes live transcription with clear recording consent, a hosted free-service relay with authentication and quotas, broader model capability checks, signed releases, and validation on macOS/Linux. These are roadmap items, not existing functionality.
 

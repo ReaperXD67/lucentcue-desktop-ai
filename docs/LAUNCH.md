@@ -1,6 +1,6 @@
 # Launch and discovery
 
-Working brand: **LucentCue**. Proposed repository: **`lucentcue-desktop-ai`**. This is a preparation guide; it does not assert that a public repository, signed release, directory listing, or collaboration already exists.
+Brand: **LucentCue**. Public repository: [ReaperXD67/lucentcue-desktop-ai](https://github.com/ReaperXD67/lucentcue-desktop-ai). This is a preparation guide for future directory submissions; it does not assert a signed release, listing, or collaboration already exists.
 
 ## Positioning
 
@@ -18,17 +18,17 @@ Before public release, verify packaged install/start/quit, shortcut conflicts, s
 
 [OpenRouterTeam/awesome-openrouter](https://github.com/OpenRouterTeam/awesome-openrouter) is a relevant future target after real integration and public release. Its [contribution requirements](https://github.com/OpenRouterTeam/awesome-openrouter/blob/main/CONTRIBUTING.md) include BYO OpenRouter keys, a public app/landing page, logo, and traction or notability. Brand-new projects without users/downloads/community activity are unlikely to be accepted; a listing is not a partnership or endorsement.
 
-The directory takes `apps/<slug>/app.yaml` and square `logo.png` (128 or 256 pixels recommended). The description has a 300-character ceiling. Do not edit its generated README. Draft below; replace every `OWNER` placeholder with the actual public owner, verify links, use the actual submission date, and update capability wording before submission:
+The directory takes `apps/<slug>/app.yaml` and square `logo.png` (128 or 256 pixels recommended). The description has a 300-character ceiling. Do not edit its generated README. Draft below; verify links, use the actual submission date, and update capability wording before submission:
 
 ```yaml
 name: "LucentCue"
 description: "Open-source desktop AI assistant with OpenRouter free-model routing, screenshot context, and configurable shortcuts. Bring your own OpenRouter key."
-url: "https://github.com/OWNER/lucentcue-desktop-ai"
-docs: "https://github.com/OWNER/lucentcue-desktop-ai#providers"
+url: "https://github.com/ReaperXD67/lucentcue-desktop-ai"
+docs: "https://github.com/ReaperXD67/lucentcue-desktop-ai#providers"
 tags:
   - chat
   - productivity
-open_source: "https://github.com/OWNER/lucentcue-desktop-ai"
+open_source: "https://github.com/ReaperXD67/lucentcue-desktop-ai"
 date_added: "YYYY-MM-DD"
 ```
 
@@ -39,9 +39,9 @@ date_added: "YYYY-MM-DD"
 Draft English entry for the AI Tools section, after the release claim is true:
 
 ```markdown
-* [LucentCue](https://github.com/OWNER/lucentcue-desktop-ai) - Open-source desktop AI assistant with screenshot context, configurable shortcuts, and OpenRouter or your own provider keys.
+* [LucentCue](https://github.com/ReaperXD67/lucentcue-desktop-ai) - Open-source desktop AI assistant with screenshot context, configurable shortcuts, and OpenRouter or your own provider keys.
 ```
 
 ## Collaboration
 
-Start with reproducible bug reports and useful contributions to dependencies already used by the app. Propose listings only after their acceptance criteria are met. Keep partnership language out of the README until an actual agreement exists. No external contact, directory submission, GitHub push, or public post has been performed by this preparation work.
+Start with reproducible bug reports and useful contributions to dependencies already used by the app. Propose listings only after their acceptance criteria are met. Keep partnership language out of the README until an actual agreement exists. No external directory submission or maintainer contact has been performed by this preparation work.

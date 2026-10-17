@@ -33,10 +33,12 @@ Users can supply their own provider keys. A future developer-sponsored free serv
 
 Keep claims precise. Windows exposes capture exclusion through [SetWindowDisplayAffinity](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowdisplayaffinity), but Microsoft explicitly provides no strict protection guarantee. Capture behavior depends on the OS and capture method. A normal desktop process remains discoverable by the operating system and security tools. Do not market LucentCue as process-invisible, universally undetectable, or guaranteed hidden from every recording tool.
 
+LucentCue now exposes optional capture protection through [Electron's API](https://www.electronjs.org/docs/latest/api/browser-window#winsetcontentprotectionenable-macos-windows) on Windows/macOS; it is off by default and unsupported on Linux. Electron documents that macOS apps using ScreenCaptureKit can ignore the protection. Successful API calls are not evidence that every capture product excludes the window.
+
 ## Brand search
 
-**LucentCue** is the working brand; **`lucentcue-desktop-ai`** is the proposed repository slug. Exact quoted web searches for `LucentCue` and backup `CairnCue` returned no indexed matches on the check date. Search absence is not trademark clearance, domain availability, or a guarantee of search ranking.
+**LucentCue** is the brand; the project repository is [ReaperXD67/lucentcue-desktop-ai](https://github.com/ReaperXD67/lucentcue-desktop-ai). Before project publication, exact quoted web searches for `LucentCue` and backup `CairnCue` returned no indexed matches on the check date. That initial search is not trademark clearance, domain availability, or a guarantee of search ranking.
 
 The earlier CueHarbor candidate already appears in [CueHarbor Health](https://cueharborhealth.com/) and an [Android puzzle listing](https://play.google.com/store/apps/details?id=com.ylqcueharbor.xjvkpuzzle.hdtrmqa), so it was rejected as a public brand. The local folder name is only a development path.
 
-Discovery and directory preparation are in [LAUNCH.md](LAUNCH.md). No maintainers were contacted and no public posts, listings, pushes, or partnership claims were made during this research.
+Discovery and directory preparation are in [LAUNCH.md](LAUNCH.md). Research involved no maintainer contact, directory submission, partnership claim, or installer execution. Repository creation and authorized source publication are separate delivery steps.

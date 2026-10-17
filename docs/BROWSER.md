@@ -4,14 +4,16 @@ LucentCue opens a **visible Chromium window with its own profile**. It does not 
 
 ## Setup
 
-From the project directory, install the application dependencies and Chromium:
+In an installed desktop build, open **Browser assist → Set up assistant browser**. LucentCue downloads the compatible Chromium build using its bundled Electron runtime; no system Node.js or npm installation is needed. The download is optional for chat and screenshots, needs an internet connection, and may take a few minutes. Setup errors can be retried from the same button. The app package includes the setup helper, not the Chromium binary.
+
+For source development, either use that button or install dependencies and download Chromium from the project directory:
 
 ```sh
-npm install
+npm ci
 npm run browser:install
 ```
 
-On Linux, Playwright may also require system libraries. Use the [official browser installation instructions](https://playwright.dev/docs/browsers#install-system-dependencies) for your distribution. A missing browser or locked profile produces a setup error with the install command.
+On Linux, Playwright may also require system libraries. Use the [official browser installation instructions](https://playwright.dev/docs/browsers#install-system-dependencies) for your distribution. A missing browser calls for setup; a locked profile may require closing another LucentCue browser before retrying. Current platform and packaged-helper validation are recorded in the [release status](../README.md#release-status).
 
 ## Workflow
 

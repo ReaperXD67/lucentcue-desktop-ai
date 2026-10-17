@@ -16,6 +16,7 @@ For browser-assistance work, also run `npm run browser:install`. Chromium is an 
 ## Verify your change
 
 ```powershell
+npm run format:check
 npm run typecheck
 npm test
 npm run build
@@ -23,7 +24,7 @@ npm run build
 
 Run the existing checks appropriate to your change. Add a focused regression test for behavior changes when it would catch a real failure; presentation-only edits do not need artificial tests. For desktop lifecycle, IPC, shortcuts, or screenshots, also run `npm run test:desktop` on a desktop session after building. Describe what you actually verified and which operating systems you used.
 
-CI runs type checking, tests, and build on Windows, macOS, and Linux. It does not run GUI smoke tests or download Chromium. The manually triggered **Build unsigned packages** workflow creates native packages on each OS and uploads unsigned artifacts; it does not publish releases, sign, notarize, or use model keys. A successful build is not proof that all runtime features work on that OS.
+CI runs formatting, type checking, tests, and build on Windows, macOS, and Linux. Use `npm run format` to apply the shared code style. CI does not run GUI smoke tests or download Chromium. The manually triggered **Build unsigned packages** workflow creates native packages on each OS and uploads unsigned artifacts; it does not publish releases, sign, notarize, or use model keys. A successful build is not proof that all runtime features work on that OS.
 
 ## Pull requests
 

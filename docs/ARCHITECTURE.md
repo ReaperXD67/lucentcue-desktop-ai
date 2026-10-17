@@ -11,10 +11,11 @@ LucentCue is an Electron desktop application. React renders the workspace; a san
 | `src/bridge.ts` | Desktop API selection and explicit browser-only interface preview |
 | `shared/types.ts` | Shared settings, message, model, browser, and IPC contracts; default history disabled |
 | `desktop/preload.ts` | Narrow `contextBridge` API; event subscriptions return cleanup functions |
-| `desktop/main.ts` | Trusted IPC registration, app lifecycle/tray, shortcut rollback, screenshot capture/export, request cancellation |
+| `desktop/main.ts` | Trusted IPC registration, app lifecycle/tray, shortcut rollback, screenshot capture/export, OS capture protection, request cancellation |
 | `desktop/providers.ts` | Fixed provider endpoints, model-catalog filtering, free-pricing checks, OpenAI-compatible requests, incremental SSE parsing |
 | `desktop/storage.ts` | Runtime input validation, serialized writes, atomic JSON replacement, OS-backed key encryption, image-free history |
 | `desktop/browser.ts` | Visible Playwright Chromium, isolated persistent profile, page snapshots, approved field filling |
+| `desktop/browser-installer.ts` | Explicit optional Chromium setup through Electron's bundled runtime, bounded helper lifetime, concurrent-click deduplication |
 | `scripts/` | Vite/Electron development launcher and esbuild desktop bundles |
 | `tests/` | Provider, storage, browser-controller, and desktop smoke workflows |
 
@@ -42,13 +43,17 @@ Keys are sent through the bridge only when a user saves or removes one. The main
 
 Electron's `userData` directory contains `local/settings.json`, optional `local/history.json`, and `local/keys.json` when OS-backed credential encryption is usable. Keys use Electron `safeStorage`; Linux's insecure `basic_text` backend is treated as unavailable. In that case keys remain session-only and the UI receives a storage notice. The encrypted key file is OS/account-bound; it is not a portable secret export.
 
-Settings and optional conversation text are plain JSON. Writes are serialized and use a temporary file plus rename. Local history is disabled by default. Saving settings with history disabled deletes its saved file; enabling history permits up to 40 conversations. Disk history and Markdown exports omit screenshot images and retain a text marker. Session memory can contain images while the app is running. Shutdown waits briefly for pending writes and closes the assistant browser.
+Settings and optional conversation text are plain JSON. Writes are serialized and use a temporary file plus rename. Local history is disabled by default. Saving settings with history disabled deletes its saved file; enabling history permits up to 40 conversations. A dedicated history sanitizer keeps recent text within 100 messages and 240,000 characters per conversation, independently of screenshot count/size. The exact serialized UTF-8 file is limited to 8,000,000 bytes before atomic replacement. Disk history and Markdown exports omit screenshot images; history includes a text marker when it fits the text budget. Session memory can contain images while the app is running. Shutdown waits briefly for pending writes and closes the assistant browser.
 
-The renderer maintains active conversations in memory independently from the saved file. Screenshot capture temporarily hides the workspace, captures the selected display, restores the workspace, and returns a preview attachment; capture does not immediately call a model. Multi-display setups present a display choice. This is not capture exclusion or process hiding.
+The renderer maintains active conversations in memory independently from the saved file. Screenshot capture temporarily hides the workspace, captures the selected display, restores the workspace, and returns a preview attachment; capture does not immediately call a model. Multi-display setups present a display choice.
+
+The independent `captureProtection` setting defaults off and calls Electron's `setContentProtection` on Windows/macOS. Unsupported Linux builds disable the control. Settings changes restore prior protection if another save step fails; startup failures return a capability notice. The OS request is best effort: modern macOS ScreenCaptureKit consumers can capture protected windows, and no universal capture guarantee is made. See [Electron's platform behavior](https://www.electronjs.org/docs/latest/api/browser-window#winsetcontentprotectionenable-macos-windows). This does not hide the application process.
 
 ## Browser assistance
 
 Playwright launches a visible Chromium persistent context under `userData/assistant-browser`. Its installed Chromium binary/cache is separate from the app package. This profile can retain website sessions; it is not the user's everyday Chrome/Edge profile. Closing it does not erase the profile.
+
+The **Set up assistant browser** UI explicitly invokes `BrowserInstaller`. It resolves the bundled Playwright CLI and spawns the application's Electron executable with `ELECTRON_RUN_AS_NODE=1`, fixed `install chromium` arguments, no shell, and no visible console window. Installed users do not need a separate Node/npm installation. Repeated clicks share one task, downloads have a ten-minute timeout, shutdown terminates the helper, and success checks for a compatible executable. Chromium remains an optional network download rather than an installer payload. Development can also use `npm run browser:install`.
 
 Only explicit UI actions open, read, fill, or close the browser. A snapshot returns bounded rendered text and ordinary editable fields, with existing field values omitted. Sensitive fields and embedded frames are excluded. Field references expire when the page changes or a fill completes. The model has no browser tools, script execution, click, sign-in, or submit capability. Filling dispatches normal input events and can trigger site behavior; users review the destination and exact text first. [BROWSER.md](BROWSER.md) explains limits and integration checks.
 
