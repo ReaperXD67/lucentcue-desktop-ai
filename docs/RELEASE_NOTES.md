@@ -1,6 +1,6 @@
 # LucentCue 0.2.0 preview
 
-Release candidate for **`v0.2.0-preview.1`**. Source validation, installation checks, and publication are in progress. [Published releases](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases) are the source for available downloads. Packages are unsigned and macOS builds are not notarized.
+Published as **[v0.2.0-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1)** after source validation, cross-platform CI, native packaging, and asset verification passed. Downloads include Windows x64 NSIS, macOS x64/arm64 DMGs, Linux x64 AppImage/deb, and `SHA256SUMS.txt`. Packages are unsigned and macOS builds are not notarized.
 
 ## Changes
 
@@ -16,9 +16,15 @@ Free OpenRouter routing, personal-provider keys, screenshot review, optional loc
 
 ## Verification
 
-Current 0.2.0 source passed **100 automated tests with headed Chromium enabled, repeated twice, and 21 Electron smoke checks** on Windows. Smoke checks include the companion Settings/workspace transition, draft preservation, 360 px minimum-width flow, real screenshots through preview/removal, visible browser read/attach/approved fill without submission, tray controls, explicit Quit availability, lost-shortcut registration recovery, and capture-protection state across mode changes. Native OS keypresses passed `Alt+W` hide/restore, `Alt+Shift+S` screenshot preview/removal, and restore with the tray icon disabled. Formatting and type checks passed; the dependency audit reported zero vulnerabilities. These checks use an isolated source-test profile; installed 0.2.0 package checks and release publication remain pending. [Windows testing](WINDOWS_TESTING.md) distinguishes those outcomes from prior-version checks.
+Current 0.2.0 source passed **100 automated tests with headed Chromium enabled, repeated twice, and 21 Electron smoke checks** on Windows. Smoke checks include the companion Settings/workspace transition, draft preservation, 360 px minimum-width flow, real screenshots through preview/removal, visible browser read/attach/approved fill without submission, tray controls, explicit Quit availability, lost-shortcut registration recovery, and capture-protection state across mode changes. Native OS keypresses passed `Alt+W` hide/restore, `Alt+Shift+S` screenshot preview/removal, and restore with the tray icon disabled. Formatting and type checks passed; the dependency audit reported zero vulnerabilities. These checks use an isolated source-test profile and do not establish installed-package behavior. [Windows testing](WINDOWS_TESTING.md) distinguishes those outcomes from installation results.
 
-CI now runs the real Windows Electron desktop smoke after its build, in addition to source checks on Windows/macOS/Linux. Optional real screenshot/browser paths, native key injection, and recording experiments remain local desktop checks.
+[Cross-platform CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057212565) passed at source commit `7a6ec0b`, including 19 real Windows Electron desktop smoke checks after building. The optional real screenshot/browser paths bring the local total to 21; native key injection and recording experiments remain separate local desktop checks. [Native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057213652) passed at the same source commit for Windows x64, macOS x64/arm64, and Linux x64.
+
+The [verified attachment workflow](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057430853) supplied all five packages and their checksum manifest. The downloaded Windows CI installer was 117,814,323 bytes and matched published SHA-256 `31cdfd87f10b722f3efc14f78b836f6a6f1da469bca25c5f023865bca059e707`.
+
+## Windows installation status
+
+On the tested PC, Windows reported **“An Application Control policy has blocked this file.”** The 0.2.0 installer did not start and the existing 0.1.1 installation remains. Installing on that device requires a build signed by a certificate trusted by its policy, or administrator-approved deployment. No security policy was changed or bypassed. Installed 0.2.0 runtime behavior remains unverified; the new companion and `Alt+W` shortcut were verified in the isolated source app.
 
 ## Existing performance comparison
 

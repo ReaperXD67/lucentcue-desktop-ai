@@ -1,10 +1,12 @@
 # Get started with LucentCue on Windows
 
-Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The 0.2.0 preview introduces a compact companion and a full workspace; its current validation status is recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied during testing, so live model answers have not been verified.
+Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.0 preview introduces a compact companion and a full workspace; source, package, and installation results are recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied during testing, so live model answers have not been verified.
 
 ## Install or upgrade
 
-Use the [official releases page](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases) for available Windows installers and `SHA256SUMS.txt`. Publication of `v0.2.0-preview.1` is in progress. The installer is unsigned. Open LucentCue from the Start menu after installation. Installed users do not need Node.js, npm, or a source checkout.
+Download the Windows installer and `SHA256SUMS.txt` from the [0.2.0 preview release](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1). The installer is unsigned. On a device whose policy permits installation, open LucentCue from the Start menu afterwards. Installed users do not need Node.js, npm, or a source checkout.
+
+On the tested PC, Windows reported **“An Application Control policy has blocked this file.”** The downloaded CI installer matched the published checksum, but did not start; 0.1.1 remains installed. Its former show/hide default is still `Alt+R`, and the new companion/`Alt+W` behavior is not installed there yet. The next step for that device is a build signed by a certificate trusted by its policy, or deployment approved by its administrator. No policy or security settings were changed during testing.
 
 The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. For an upgrade, use **Quit LucentCue** in the app or tray menu first, then run the newer official installer and choose the same installation location. There is no automatic updater. If local history matters to you, export the conversations you want to keep before changing versions.
 

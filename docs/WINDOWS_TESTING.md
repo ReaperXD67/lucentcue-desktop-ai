@@ -1,6 +1,6 @@
 # Windows installation and privacy test record
 
-This record separates source/release checks, tests of an installed application, and live provider access. **0.2.0 source passed 100 automated tests with headed Chromium enabled, 21 Electron smoke checks, and native shortcut tests on Windows.** Installed 0.2.0 package checks, matching-commit CI/packages, and publication remain pending. No personal model key was supplied.
+This record separates source/release checks, tests of an installed application, and live provider access. **0.2.0 is published after successful source tests, cross-platform CI, native packaging, and asset verification.** Windows Application Control blocked the downloaded CI installer on the tested PC before it started, so 0.1.1 remains installed and installed 0.2.0 behavior is unverified. No personal model key was supplied.
 
 ## Published 0.1.0 baseline
 
@@ -58,7 +58,7 @@ Source tests use an isolated LucentCue profile and harmless local fixtures. Nati
 | Electron smoke | 21 checks passed, including compact/workspace transitions, shared draft, 360 px minimum-width flow, invalid mode rejection, tray controls, explicit Quit availability, shortcut re-registration recovery, capture-protection state across mode changes, screenshots, and browser flow |
 | Companion → Settings/workspace → companion | Gear opened Settings in the full workspace; switching back retained the draft |
 | `Alt+W` hide and global restore, including tray icon off | Actual native keypresses passed hide, restore, and restore with tray icon disabled |
-| Old-default migration and custom-shortcut preservation | Automated storage regressions passed; installed upgrade check pending |
+| Old-default migration and custom-shortcut preservation | Automated storage regressions passed; installed upgrade could not run because Application Control blocked the installer |
 | Screenshot UI and native `Alt+Shift+S`, preview/removal | Real OS screenshot paths passed; attachment appeared and was removed before sending |
 | Visible browser read/attach/approved fill, no submit | Local-fixture UI flow passed; input was filled and no submit occurred |
 | Covered selected browser tab, genuine background tab, minimized browser | Headed Windows browser tests passed read/fill while covered, preserved background-tab hidden state, and rejected minimized reads |
@@ -68,11 +68,15 @@ Source tests use an isolated LucentCue profile and harmless local fixtures. Nati
 | External paired DXGI recording fixture, off/on/off | All six decoded frames per state passed; protected frames were 100% black; details below |
 | External DXGI recording of the built LucentCue source app in both modes | 42 decoded frames across 7 stages passed: all 18 protected frames 100% black; all 24 unprotected baseline/restored frames showed app UI |
 | External capture of installed binary, WGC, OBS, Zoom, or other target recorder | Not tested; source-app and fixture evidence do not establish this |
-| Windows package, installed upgrade, app open | Pending |
-| Matching-commit Windows/macOS/Linux CI and packages | Pending |
-| Published release packages and SHA-256 checksums | Pending |
+| Windows published installer | `LucentCue.Setup.0.2.0.exe`, 117,814,323 bytes; downloaded file matched the published SHA-256 below |
+| Installed 0.2.0 upgrade / launch | Blocked before installer startup: “An Application Control policy has blocked this file.” Existing 0.1.1 remains installed; no installed 0.2.0 runtime pass claimed |
+| Windows/macOS/Linux CI | [39057212565 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057212565), source `7a6ec0b`; Windows logs confirm 91 offline tests passed, 9 optional browser tests skipped, and 19 default real Electron checks |
+| Matching-commit Windows/macOS/Linux native packages | [39057213652 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057213652); Windows x64, macOS x64/arm64 DMG, Linux x64 AppImage/deb |
+| Published release packages and SHA-256 checksums | [v0.2.0-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1): five native packages plus `SHA256SUMS.txt`, matching source `7a6ec0b`; [attachment workflow 39057430853 passed](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057430853) and GitHub asset digests verified |
 
-The Windows CI job now also runs `npm run test:desktop` after building, using its isolated profile and mocked completions. It does not enable the optional real screenshot/browser feature paths or replace the local native-keypress/recording experiments. The matching-commit hosted run remains pending until linked above.
+The published Windows CI installer's SHA-256 is `31cdfd87f10b722f3efc14f78b836f6a6f1da469bca25c5f023865bca059e707`. A correct hash establishes file identity, not permission to run under Windows policy. Installation on the blocked device requires a build signed by a certificate trusted by its policy or administrator-approved deployment. No unblocking, policy/security-setting changes, or rebuild intended to evade that policy were performed.
+
+The Windows CI job passed `npm run test:desktop` after building, using its isolated profile and mocked completions. Its 19 default checks do not enable the two optional real screenshot/browser feature paths included in the 21 local checks, or replace the local native-keypress/recording experiments.
 
 ## Installed 0.1.1 baseline results
 
