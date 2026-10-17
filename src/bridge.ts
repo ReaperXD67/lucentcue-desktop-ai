@@ -66,6 +66,7 @@ const preview: DesktopAPI = {
     if (previewState.settings.saveHistory) previewState.conversations = conversations;
   },
   exportConversation: desktopOnly,
+  copyText: (text) => navigator.clipboard.writeText(text),
   async hide() {},
   async minimize() {},
   async openExternal(url) {

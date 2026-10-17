@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -368,15 +368,15 @@ export default function App() {
       }
     }
   }
-  async function copy(message: Message) {
+  const copy = useCallback(async (message: Message) => {
     try {
-      await navigator.clipboard.writeText(message.content);
+      await api.copyText(message.content);
       setCopied(message.id);
       window.setTimeout(() => setCopied(''), 1600);
     } catch {
       setNotice('Clipboard access failed. Select the answer text and copy it manually.');
     }
-  }
+  }, []);
   function handleScroll() {
     const element = scrollRef.current;
     if (element) {
@@ -671,76 +671,14 @@ export default function App() {
                   aria-busy={streaming}
                 >
                   {messages.map((message, index) => (
-                    <article className={`message ${message.role}`} key={message.id}>
-                      <div className="message-author">
-                        {message.role === 'assistant' ? (
-                          <>
-                            <Sparkles size={16} />
-                            <span>LucentCue</span>
-                          </>
-                        ) : (
-                          <>
-                            <div className="user-avatar">Y</div>
-                            <span>You</span>
-                          </>
-                        )}
-                      </div>
-                      {message.attachments?.map((attachment) => (
-                        <img
-                          className="message-image"
-                          key={attachment.id}
-                          src={attachment.dataUrl}
-                          alt={attachment.name}
-                        />
-                      ))}
-                      <div className="markdown">
-                        {message.content ? (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            components={{
-                              img: () => (
-                                <span className="remote-image-note">[Remote image omitted]</span>
-                              ),
-                              a: ({ href, children }) => (
-                                <a
-                                  href={href}
-                                  title={href}
-                                  onClick={(event) => {
-                                    event.preventDefault();
-                                    if (href)
-                                      void api
-                                        .openExternal(href)
-                                        .catch((error) => setNotice(errorText(error)));
-                                  }}
-                                >
-                                  {children}
-                                  <ArrowUpRight size={12} />
-                                </a>
-                              ),
-                            }}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
-                        ) : (
-                          <span className="thinking">
-                            <span />
-                            <span />
-                            <span />
-                            <span className="sr-only">Waiting for the model…</span>
-                          </span>
-                        )}
-                      </div>
-                      {message.role === 'assistant' &&
-                        message.content &&
-                        !(streaming && index === messages.length - 1) && (
-                          <div className="message-actions">
-                            <button className="text-button" onClick={() => void copy(message)}>
-                              {copied === message.id ? <Check size={14} /> : <Copy size={14} />}
-                              {copied === message.id ? 'Copied' : 'Copy answer'}
-                            </button>
-                          </div>
-                        )}
-                    </article>
+                    <MessageView
+                      key={message.id}
+                      message={message}
+                      generating={streaming && index === messages.length - 1}
+                      copied={copied === message.id}
+                      onCopy={copy}
+                      onNotice={setNotice}
+                    />
                   ))}
                 </div>
               )}
@@ -1012,6 +950,88 @@ export default function App() {
     </div>
   );
 }
+
+/** Completed rows keep their parsed Markdown while the draft or current answer changes. */
+const MessageView = memo(function MessageView({
+  message,
+  generating,
+  copied,
+  onCopy,
+  onNotice,
+}: {
+  message: Message;
+  generating: boolean;
+  copied: boolean;
+  onCopy: (message: Message) => Promise<void>;
+  onNotice: (notice: string) => void;
+}) {
+  return (
+    <article className={`message ${message.role}`}>
+      <div className="message-author">
+        {message.role === 'assistant' ? (
+          <>
+            <Sparkles size={16} />
+            <span>LucentCue</span>
+          </>
+        ) : (
+          <>
+            <div className="user-avatar">Y</div>
+            <span>You</span>
+          </>
+        )}
+      </div>
+      {message.attachments?.map((attachment) => (
+        <img
+          className="message-image"
+          key={attachment.id}
+          src={attachment.dataUrl}
+          alt={attachment.name}
+        />
+      ))}
+      <div className="markdown">
+        {message.content ? (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              img: () => <span className="remote-image-note">[Remote image omitted]</span>,
+              a: ({ href, children }) => (
+                <a
+                  href={href}
+                  title={href}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (href)
+                      void api.openExternal(href).catch((error) => onNotice(errorText(error)));
+                  }}
+                >
+                  {children}
+                  <ArrowUpRight size={12} />
+                </a>
+              ),
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        ) : (
+          <span className="thinking">
+            <span />
+            <span />
+            <span />
+            <span className="sr-only">Waiting for the model…</span>
+          </span>
+        )}
+      </div>
+      {message.role === 'assistant' && message.content && !generating && (
+        <div className="message-actions">
+          <button className="text-button" onClick={() => void onCopy(message)}>
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            {copied ? 'Copied' : 'Copy answer'}
+          </button>
+        </div>
+      )}
+    </article>
+  );
+});
 
 function BrowserPanel({
   onClose,

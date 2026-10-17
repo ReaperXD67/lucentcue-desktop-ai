@@ -5,10 +5,12 @@ import {
   ENDPOINTS,
   getModels,
   isZeroPriced,
+  MAX_ASSISTANT_TEXT_LENGTH,
   parseModels,
   SSEDecoder,
   streamChat,
 } from '../desktop/providers';
+import { validateMessages } from '../desktop/storage';
 
 const request = {
   id: 'request',
@@ -178,6 +180,129 @@ describe('provider requests', () => {
         fetcher,
       ),
     ).rejects.toThrow('before the answer finished');
+  });
+  it('accepts a complete answer exactly at the persisted message limit', async () => {
+    const text = 'a'.repeat(MAX_ASSISTANT_TEXT_LENGTH);
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\ndata: [DONE]\n\n`,
+        ),
+      );
+    const onDelta = vi.fn();
+    await streamChat(
+      { ...DEFAULT_SETTINGS, mode: 'byok' },
+      'secret',
+      request,
+      new AbortController().signal,
+      onDelta,
+      fetcher,
+    );
+    const content = onDelta.mock.calls.map(([text]) => text).join('');
+    expect(content).toHaveLength(MAX_ASSISTANT_TEXT_LENGTH);
+    expect(() =>
+      validateMessages([...request.messages, { id: 'answer', role: 'assistant', content }]),
+    ).not.toThrow();
+  });
+  it('caps accumulated output, cancels the stream, and leaves a persistable partial answer without retries', async () => {
+    const cancel = vi.fn();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const events = ['a'.repeat(60_000), 'b'.repeat(40_001)]
+          .map((content) => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`)
+          .join('');
+        controller.enqueue(encoder.encode(events));
+        // Leave the network body open: overflow must actively cancel it.
+      },
+      cancel,
+    });
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(catalog())))
+      .mockResolvedValueOnce(new Response(body));
+    const onDelta = vi.fn();
+    await expect(
+      streamChat(
+        DEFAULT_SETTINGS,
+        'secret',
+        request,
+        new AbortController().signal,
+        onDelta,
+        fetcher,
+      ),
+    ).rejects.toThrow('stopped this answer at its size limit');
+    const content = onDelta.mock.calls.map(([text]) => text).join('');
+    expect(content).toHaveLength(MAX_ASSISTANT_TEXT_LENGTH);
+    expect(content.endsWith('b')).toBe(true);
+    expect(() =>
+      validateMessages([...request.messages, { id: 'answer', role: 'assistant', content }]),
+    ).not.toThrow();
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it('preserves Unicode boundaries when an emoji straddles the output limit', async () => {
+    const text = 'a'.repeat(MAX_ASSISTANT_TEXT_LENGTH - 1) + '🌊';
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(`data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`),
+      );
+    const onDelta = vi.fn();
+    await expect(
+      streamChat(
+        { ...DEFAULT_SETTINGS, mode: 'byok' },
+        'secret',
+        request,
+        new AbortController().signal,
+        onDelta,
+        fetcher,
+      ),
+    ).rejects.toThrow('size limit');
+    const content = onDelta.mock.calls.map(([text]) => text).join('');
+    expect(content).toBe('a'.repeat(MAX_ASSISTANT_TEXT_LENGTH - 1));
+  });
+  it('also bounds structured text parts and the provider length-limit note', async () => {
+    const onDelta = vi.fn();
+    const structured = [{ text: 'a'.repeat(60_000) }, { text: 'b'.repeat(40_001) }];
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          `data: ${JSON.stringify({ choices: [{ delta: { content: structured } }] })}\n\n`,
+        ),
+      );
+    await expect(
+      streamChat(
+        { ...DEFAULT_SETTINGS, mode: 'byok' },
+        'secret',
+        request,
+        new AbortController().signal,
+        onDelta,
+        fetcher,
+      ),
+    ).rejects.toThrow('size limit');
+    expect(onDelta.mock.calls.map(([text]) => text).join('')).toHaveLength(
+      MAX_ASSISTANT_TEXT_LENGTH,
+    );
+    onDelta.mockClear();
+    const text = 'a'.repeat(MAX_ASSISTANT_TEXT_LENGTH - 5);
+    fetcher.mockResolvedValueOnce(
+      new Response(
+        `data: ${JSON.stringify({ choices: [{ delta: { content: text }, finish_reason: 'length' }] })}\n\ndata: [DONE]\n\n`,
+      ),
+    );
+    await expect(
+      streamChat(
+        { ...DEFAULT_SETTINGS, mode: 'byok' },
+        'secret',
+        request,
+        new AbortController().signal,
+        onDelta,
+        fetcher,
+      ),
+    ).rejects.toThrow('size limit');
+    expect(onDelta.mock.calls.map(([text]) => text).join('')).toBe(text);
   });
   it('includes browser material as explicitly untrusted user reference', () => {
     const payload = chatPayload(DEFAULT_SETTINGS, {

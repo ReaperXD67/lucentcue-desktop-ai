@@ -31,7 +31,7 @@ Browser operations come from explicit user actions in the application. The model
 
 Field filling fires the website's normal input events. A website can react to those events, including saving drafts or issuing requests, so review the destination and text before filling. Page text may itself contain private information; review the context before sending it to your selected model provider. Rendering and form markup vary across websites, so some custom editors are intentionally unavailable.
 
-The implementation uses Playwright's [persistent browser context](https://playwright.dev/docs/api/class-browsertype#browser-type-launch-persistent-context) and [text input APIs](https://playwright.dev/docs/input#text-input). It uses standard browser automation without stealth plugins or process hiding.
+0.1.1 source starts a standard Chromium child with a separate user-data directory, then attaches Playwright over a local CDP endpoint using `noDefaults: true`. This preserves the actual tab focus/visibility instead of Playwright's default focus emulation, so **Read page** can follow the tab a person selected. Browser close explicitly closes the owned Chromium process. Text filling uses Playwright's [text input APIs](https://playwright.dev/docs/input#text-input); no stealth plugins or process hiding are used. The published 0.1.0 preview predates this correction; 0.1.1 packaging and installation remain pending.
 
 ## Verification
 

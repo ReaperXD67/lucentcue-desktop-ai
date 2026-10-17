@@ -94,6 +94,7 @@ export interface DesktopAPI {
   onCapture(callback: (attachment: Attachment) => void): () => void;
   saveConversations(conversations: Conversation[]): Promise<void>;
   exportConversation(conversation: Conversation): Promise<boolean>;
+  copyText(text: string): Promise<void>;
   hide(): Promise<void>;
   minimize(): Promise<void>;
   openExternal(url: string): Promise<void>;

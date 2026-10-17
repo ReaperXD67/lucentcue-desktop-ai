@@ -13,6 +13,8 @@ export const ENDPOINTS: Record<Provider, string> = {
   openai: 'https://api.openai.com/v1',
   gemini: 'https://generativelanguage.googleapis.com/v1beta/openai',
 };
+// Match the maximum length accepted by message and history validation.
+export const MAX_ASSISTANT_TEXT_LENGTH = 100_000;
 type JsonObject = Record<string, unknown>;
 const object = (value: unknown): JsonObject =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as JsonObject) : {};
@@ -261,6 +263,25 @@ export async function streamChat(
     let ended = false;
     let finishReason: string | undefined;
     let receivedText = false;
+    let emittedLength = 0;
+    const sizeLimitError = () =>
+      new Error(
+        'LucentCue stopped this answer at its size limit. Ask for a shorter response or continue in a new message.',
+      );
+    const emitText = (text: string) => {
+      const available = MAX_ASSISTANT_TEXT_LENGTH - emittedLength;
+      let accepted = text.slice(0, available);
+      if (accepted.length < text.length && /[\uD800-\uDBFF]$/.test(accepted)) {
+        // Never split an emoji or another supplementary character at the cap.
+        accepted = accepted.slice(0, -1);
+      }
+      if (accepted) {
+        receivedText = true;
+        emittedLength += accepted.length;
+        onDelta(accepted);
+      }
+      if (accepted.length < text.length) throw sizeLimitError();
+    };
     const parser = new SSEDecoder((data) => {
       if (ended) return;
       if (data.trim() === '[DONE]') {
@@ -286,13 +307,11 @@ export async function streamChat(
       if (typeof choice.finish_reason === 'string') finishReason = choice.finish_reason;
       const delta = object(choice.delta).content;
       if (typeof delta === 'string' && delta) {
-        receivedText = true;
-        onDelta(delta);
+        emitText(delta);
       } else if (Array.isArray(delta))
         for (const part of delta)
           if (typeof object(part).text === 'string' && object(part).text) {
-            receivedText = true;
-            onDelta(object(part).text as string);
+            emitText(object(part).text as string);
           }
     });
     const reader = response.body.getReader();
@@ -313,8 +332,11 @@ export async function streamChat(
         throw new Error('The provider ended the response with an error. Please try again.');
       if (!receivedText)
         throw new Error('The model returned no text. Try again or select another model.');
-      if (finishReason === 'length')
-        onDelta('\n\n[The model reached its response limit. Ask it to continue.]');
+      if (finishReason === 'length') {
+        const note = '\n\n[The model reached its response limit. Ask it to continue.]';
+        if (emittedLength + note.length > MAX_ASSISTANT_TEXT_LENGTH) throw sizeLimitError();
+        emitText(note);
+      }
     } finally {
       await reader.cancel().catch(() => undefined);
       reader.releaseLock();

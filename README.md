@@ -4,7 +4,9 @@
 
 An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Bring an OpenRouter, OpenAI, or Gemini key, keep your workspace a shortcut away, and choose exactly what you send.
 
-**Developer preview · MIT · Electron + React + TypeScript.** [Download unsigned packages](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.1.0-preview.1) for Windows, macOS, and Linux. See [release status](#release-status) for verified checks and remaining work.
+**0.1.1 developer preview · MIT · Electron + React + TypeScript.** Locally packaged and installed on Windows; the next downloadable release targets `v0.1.1-preview.1`. [Published unsigned packages](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases) are available for Windows, macOS, and Linux. See [release status](#release-status) and [0.1.1 preview notes](docs/RELEASE_NOTES.md).
+
+For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md). [Windows testing](docs/WINDOWS_TESTING.md) records actual installation results separately from capture/privacy checks and live model access.
 
 ![LucentCue workspace with conversation sidebar, screenshot tools, and free model selection](docs/images/workspace.png)
 
@@ -94,6 +96,8 @@ npm run test:desktop
 
 `npm test` covers provider streaming/free-model rules, storage, browser-controller behavior, and browser setup. Optional real Chromium integration checks and their environment flag are documented in [browser verification](docs/BROWSER.md#verification). `test:desktop` exercises the desktop runtime; results are recorded below.
 
+Set `LUCENTCUE_DESKTOP_FEATURES=1` for the optional real screenshot/browser smoke paths on a desktop session. The synthetic UI comparison is documented in [Windows testing](docs/WINDOWS_TESTING.md#synthetic-ui-comparison); it is separate from provider/network latency.
+
 | Command | Output |
 | --- | --- |
 | `npm run pack` | Unpacked desktop app |
@@ -107,7 +111,11 @@ The manual **Attach packages to draft preview** workflow transfers verified succ
 
 ## Release status
 
-Verified 17 October 2026: [CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045557690) and [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045558099) pass on Windows, macOS, and Linux. Packages include Windows x64 NSIS, macOS x64/arm64 DMGs, and Linux x64 AppImage/deb. Local Windows checks pass: 78 offline tests, 4 real Chromium integration tests, and 14 Electron smoke checks, including native capture-protection toggling. The packaged Windows browser helper also passed. The dependency audit reports zero known vulnerabilities. Desktop runtime testing on macOS/Linux, code signing, notarization, and live provider completions with a real key remain pending.
+For the published 0.1.0 baseline, [CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045557690) and [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045558099) passed on Windows/macOS/Linux, and the packaged Windows browser helper passed. Current 0.1.1 source passes **90 tests, including 8 real Chromium tests, and 17 Electron smoke checks** on Windows. The optional smoke paths exercised a real OS screenshot through preview/removal and a visible local-fixture browser through read/attach/approved fill with no form submission. The 0.1.1 Windows NSIS build and per-user upgrade passed, and the installed app opened. New-version cross-platform CI and release assets remain pending.
+
+The installed Windows app loaded the public OpenRouter free-model catalog without a key. No personal key was supplied. Native `Alt+R` successfully hid the installed 0.1.1 window; global restore and screenshot keypress checks remain pending. A separate harmless Electron fixture was visible with protection off and black with protection on under the tested Windows DXGI Desktop Duplication path. GDI was inconclusive; WGC and actual OBS/Zoom recorders remain untested. See the [scoped evidence](docs/WINDOWS_TESTING.md#capture-observations). macOS/Linux runtime behavior, signing/notarization, and live provider completions remain unverified.
+
+0.1.1 fixes selected-tab reading, unchanged-shortcut re-registration, Copy answer through bounded trusted IPC, and oversized answers. Reusing completed message renders reduced a synthetic 4× CPU-throttled workload's median typing time from 16,543 to 549 ms and streaming time from 31,394 to 1,363 ms across five runs. These are local stress-comparison results, not network latency or installed-device guarantees; [method and limits](docs/WINDOWS_TESTING.md#synthetic-ui-comparison) are recorded separately.
 
 ## Contributing and next steps
 

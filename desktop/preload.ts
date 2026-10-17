@@ -22,6 +22,7 @@ const api: DesktopAPI = {
   },
   saveConversations: (conversations) => ipcRenderer.invoke('app:history', conversations),
   exportConversation: (conversation) => ipcRenderer.invoke('app:export', conversation),
+  copyText: (text) => ipcRenderer.invoke('app:copy', text),
   hide: () => ipcRenderer.invoke('app:hide'),
   minimize: () => ipcRenderer.invoke('app:minimize'),
   openExternal: (url) => ipcRenderer.invoke('app:external', url),

@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  clipboard,
   desktopCapturer,
   dialog,
   globalShortcut,
@@ -101,6 +102,8 @@ function handle(channel: string, action: (...args: any[]) => unknown): void {
 }
 
 function installShortcuts(next: Settings, previous?: Settings): void {
+  if (previous?.shortcut === next.shortcut && previous.captureShortcut === next.captureShortcut)
+    return;
   const handlers = new Map<string, () => void>([
     [next.shortcut, toggle],
     [
@@ -328,6 +331,9 @@ function registerIPC(): void {
     return true;
   });
   handle('app:hide', () => window?.hide());
+  handle('app:copy', (value: unknown) => {
+    return clipboard.writeText(stringValue(value, 'Clipboard text', 100_000, true));
+  });
   handle('app:minimize', () => window?.minimize());
   handle('app:external', async (value: unknown) => {
     const url = new URL(stringValue(value, 'Link', 4096));

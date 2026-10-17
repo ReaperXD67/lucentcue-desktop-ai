@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { mkdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import type { BrowserContext, ElementHandle, Frame, Locator, Page } from 'playwright';
+import { setTimeout as delay } from 'node:timers/promises';
+import type { BrowserContext, CDPSession, ElementHandle, Frame, Locator, Page } from 'playwright';
 import type { BrowserController, BrowserSnapshot } from '../shared/types';
 
 const FIELD_ATTRIBUTE = 'data-lucentcue-field';
@@ -203,17 +206,109 @@ export interface BrowserDependencies {
   createId?: () => string;
 }
 
-const defaults: BrowserDependencies = {
-  async launch(profilePath) {
-    const { chromium } = await import('playwright');
-    return chromium.launchPersistentContext(profilePath, {
-      headless: false,
-      viewport: null,
-      acceptDownloads: false,
-      chromiumSandbox: true,
-      timeout: 30_000,
+/** Launch a separate standard Chromium profile without emulating every tab's focus.
+ * headless is used only by local integration tests; the application always passes false.
+ */
+export async function launchAssistantBrowser(
+  profilePath: string,
+  headless = false,
+): Promise<BrowserContext> {
+  const { chromium } = await import('playwright');
+  const directory = resolve(profilePath);
+  await mkdir(directory, { recursive: true });
+  const markerPath = join(directory, 'DevToolsActivePort');
+  const previousMarker = await readFile(markerPath, 'utf8').catch(() => undefined);
+  const child = spawn(
+    chromium.executablePath(),
+    [
+      `--user-data-dir=${directory}`,
+      '--remote-debugging-port=0',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--enable-automation',
+      ...(headless ? ['--headless=new'] : []),
+      'about:blank',
+    ],
+    { shell: false, stdio: 'ignore', windowsHide: headless },
+  );
+  let exited = false;
+  const childEnded = new Promise<void>((resolveEnded) => {
+    child.once('exit', () => {
+      exited = true;
+      resolveEnded();
     });
-  },
+    child.once('error', () => {
+      exited = true;
+      resolveEnded();
+    });
+  });
+  const onParentExit = () => {
+    if (!exited) child.kill();
+  };
+  process.once('exit', onParentExit);
+  void childEnded.then(() => process.removeListener('exit', onParentExit));
+  let browser: Awaited<ReturnType<typeof chromium.connectOverCDP>> | undefined;
+  let control: CDPSession | undefined;
+  let closing: Promise<void> | undefined;
+  const stop = (): Promise<void> => {
+    if (!closing)
+      closing = (async () => {
+        // Closing a CDP connection alone can leave Chromium running. Close its
+        // owned browser explicitly, then release the connection and child process.
+        if (control && browser?.isConnected()) await control.send('Browser.close').catch(() => {});
+        await browser?.close().catch(() => {});
+        if (!exited)
+          await new Promise<void>((resolveWait) => {
+            const timer = setTimeout(resolveWait, 1500);
+            void childEnded.then(() => {
+              clearTimeout(timer);
+              resolveWait();
+            });
+          });
+        if (!exited) child.kill();
+      })();
+    return closing;
+  };
+  try {
+    const deadline = Date.now() + 30_000;
+    let endpoint = '';
+    while (!endpoint && Date.now() < deadline) {
+      if (exited) throw new Error('Chromium closed before its separate profile was ready.');
+      const marker = await readFile(markerPath, 'utf8').catch(() => undefined);
+      if (marker && marker !== previousMarker && marker.length < 1024) {
+        const [port, path] = marker.trim().split(/\r?\n/);
+        if (
+          /^\d{1,5}$/.test(port) &&
+          Number(port) > 0 &&
+          Number(port) <= 65535 &&
+          /^\/devtools\/browser\/[a-zA-Z0-9-]+$/.test(path || '')
+        ) {
+          endpoint = `ws://127.0.0.1:${port}${path}`;
+        }
+      }
+      if (!endpoint) await delay(25);
+    }
+    if (!endpoint) throw new Error('Chromium did not finish starting.');
+    // Playwright's default focus override makes all tabs report focused/visible,
+    // which prevents observing the tab a person actually selected.
+    browser = await chromium.connectOverCDP(endpoint, {
+      noDefaults: true,
+      timeout: Math.max(1, deadline - Date.now()),
+    });
+    control = await browser.newBrowserCDPSession();
+    await control.send('Browser.setDownloadBehavior', { behavior: 'deny' });
+    const context = browser.contexts()[0];
+    if (!context) throw new Error('Chromium did not expose its separate profile.');
+    context.close = stop;
+    return context;
+  } catch (error) {
+    await stop();
+    throw error;
+  }
+}
+
+const defaults: BrowserDependencies = {
+  launch: (profilePath) => launchAssistantBrowser(profilePath),
 };
 
 /** A visible, separate Chromium profile. Only the UI invokes these operations. */
@@ -236,25 +331,14 @@ export function createBrowserController(
     if (watched.has(page)) return;
     watched.add(page);
     page.on('framenavigated', (frame) => {
-      if (frame === page.mainFrame()) invalidate();
+      if (frame === page.mainFrame() && page === lastPage) invalidate();
     });
     page.on('close', () => {
-      invalidate();
-      if (lastPage === page) lastPage = undefined;
+      if (lastPage === page) {
+        invalidate();
+        lastPage = undefined;
+      }
     });
-    // Playwright's focus emulation obscures which tab the user actually selected.
-    void context
-      ?.newCDPSession(page)
-      .then(async (session) => {
-        try {
-          await session.send('Emulation.setFocusEmulationEnabled', { enabled: false });
-        } finally {
-          await session.detach();
-        }
-      })
-      .catch(() => {
-        /* A tab may close while its focus observation is configured. */
-      });
   };
   const ensureContext = async (): Promise<BrowserContext> => {
     if (context) return context;

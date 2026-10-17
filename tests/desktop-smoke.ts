@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import electronExecutable from 'electron';
 import { _electron, type ElectronApplication, type Page } from 'playwright';
+import { createServer } from 'node:http';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const main = join(project, 'dist-desktop', 'main.cjs');
@@ -26,6 +27,7 @@ environment.LUCENTCUE_USER_DATA = profile;
 let application: ElectronApplication | undefined;
 let applicationProcess: ChildProcess | undefined;
 let renderer: Page | undefined;
+let sensitiveCaptureActive = false;
 const pageErrors: string[] = [];
 const checks: string[] = [];
 function checked(description: string) {
@@ -361,6 +363,48 @@ try {
   assert.equal(await renderer.locator('.message.assistant').count(), 1);
   checked('Mocked provider SSE streams through the main process and renders its completed answer');
 
+  // Spy only on this temporary process's final native writer. Do not read or
+  // replace the user's clipboard (which may contain non-text formats).
+  await application.evaluate(({ clipboard }) => {
+    const fixture = globalThis as unknown as {
+      __originalClipboardWrite: typeof clipboard.writeText;
+      __copiedText?: string;
+    };
+    fixture.__originalClipboardWrite = clipboard.writeText;
+    clipboard.writeText = async (text: string) => {
+      fixture.__copiedText = text;
+    };
+  });
+  try {
+    await renderer.getByRole('button', { name: 'Copy answer', exact: true }).click();
+    await renderer.getByRole('button', { name: 'Copied', exact: true }).waitFor();
+    assert.equal(
+      await application.evaluate('globalThis.__copiedText'),
+      'Start with one clear task. Keep the next action small.',
+    );
+    await renderer.evaluate(async () => {
+      let rejected = false;
+      try {
+        await window.desktop!.copyText('x'.repeat(100_001));
+      } catch {
+        rejected = true;
+      }
+      if (!rejected) throw new Error('Oversized clipboard payload was accepted.');
+    });
+    assert.equal(
+      await application.evaluate('globalThis.__copiedText'),
+      'Start with one clear task. Keep the next action small.',
+    );
+    checked('Copy answer reaches the bounded main-process clipboard writer through trusted IPC');
+  } finally {
+    await application.evaluate(({ clipboard }) => {
+      const fixture = globalThis as unknown as {
+        __originalClipboardWrite: typeof clipboard.writeText;
+      };
+      clipboard.writeText = fixture.__originalClipboardWrite;
+    });
+  }
+
   await application.evaluate(`globalThis.__lucentcueSmokeMode = 'hold'`);
   await renderer.getByRole('button', { name: /^New conversation/ }).click();
   await composer.fill('Hold this request until I stop.');
@@ -425,8 +469,13 @@ try {
   await renderer.getByRole('button', { name: 'Remove key', exact: true }).click();
   await renderer.getByRole('status').filter({ hasText: 'OpenRouter key removed.' }).waitFor();
   await renderer.getByRole('button', { name: 'Close settings' }).click();
-  // Restore the initial real app state for clean screenshots and no retained key.
-  await renderer.evaluate((settings) => window.desktop!.saveSettings(settings), first.settings);
+  // Keep the temporary test shortcuts: an installed copy may own the defaults.
+  // Restore all other initial settings for clean screenshots and no retained key.
+  await renderer.evaluate((settings) => window.desktop!.saveSettings(settings), {
+    ...first.settings,
+    shortcut: saved.settings.shortcut,
+    captureShortcut: saved.settings.captureShortcut,
+  });
   await renderer.reload();
   await composer.waitFor();
   assert.deepEqual((await readState()).keys, first.keys);
@@ -447,6 +496,91 @@ try {
     .filter({ hasText: /HTTP and HTTPS/ })
     .waitFor();
   checked('Browser UI gates unread fields and rejects file URLs through the real browser IPC');
+
+  // Optional current-PC checks capture a local display in memory and launch the
+  // visible assistant browser. Never save a screenshot containing that preview.
+  if (process.env.LUCENTCUE_DESKTOP_FEATURES === '1') {
+    const originalDialog = await application.evaluate(({ dialog }) => {
+      (globalThis as any).__originalDisplayDialog = dialog.showMessageBox;
+      dialog.showMessageBox = (async () => ({
+        response: 0,
+        checkboxChecked: false,
+      })) as typeof dialog.showMessageBox;
+      return true;
+    });
+    assert.equal(originalDialog, true);
+    await browserPanel.getByRole('button', { name: 'Close browser panel' }).click();
+    try {
+      sensitiveCaptureActive = true;
+      await renderer.getByRole('button', { name: 'Capture screenshot', exact: true }).click();
+      const preview = renderer.getByRole('img', { name: 'Screenshot preview', exact: true });
+      await preview.waitFor();
+      assert.equal(
+        await preview.evaluate(
+          (image: HTMLImageElement) => image.complete && image.naturalWidth > 0,
+        ),
+        true,
+      );
+      await renderer.getByRole('button', { name: /^Remove Screenshot/ }).click();
+      await preview.waitFor({ state: 'detached' });
+      sensitiveCaptureActive = false;
+      checked(
+        'Screenshot button captures a real local display, previews it, and removes it before sending',
+      );
+    } finally {
+      await renderer.getByRole('button', { name: /^New conversation/ }).click();
+      await application.evaluate(({ dialog }) => {
+        dialog.showMessageBox = (globalThis as any).__originalDisplayDialog;
+      });
+    }
+    let filled = '';
+    let submits = 0;
+    const fixture = createServer(async (request, response) => {
+      if (request.url === '/input') {
+        const chunks: Buffer[] = [];
+        for await (const chunk of request) chunks.push(Buffer.from(chunk));
+        filled = Buffer.concat(chunks).toString('utf8');
+        response.end('ok');
+      } else if (request.url === '/submit') {
+        submits++;
+        response.end('submitted');
+      } else {
+        response.setHeader('Content-Type', 'text/html');
+        response.end(
+          '<!doctype html><title>LucentCue local browser check</title><h1>Harmless browser fixture</h1><p>Local-only reference text.</p><form action="/submit"><label>Draft note<textarea name="note" oninput="fetch(\'/input\',{method:\'POST\',body:this.value})"></textarea></label><button>Submit</button></form>',
+        );
+      }
+    });
+    await new Promise<void>((resolveListen) => fixture.listen(0, '127.0.0.1', resolveListen));
+    try {
+      const address = fixture.address();
+      assert(address && typeof address !== 'string');
+      await renderer.getByRole('button', { name: 'Browser assist', exact: true }).click();
+      await browserPanel.getByLabel('Page address').fill(`http://127.0.0.1:${address.port}`);
+      await browserPanel.getByRole('button', { name: 'Open browser', exact: true }).click();
+      await browserPanel.getByRole('status').filter({ hasText: 'Browser opened.' }).waitFor();
+      await browserPanel.getByRole('button', { name: 'Read page', exact: true }).click();
+      await browserPanel.getByText('LucentCue local browser check', { exact: true }).waitFor();
+      await browserPanel.getByRole('button', { name: 'Attach to question', exact: true }).click();
+      await browserPanel.getByLabel('Text to fill').fill('LucentCue local-only approved draft');
+      await browserPanel.getByRole('button', { name: 'Fill selected field', exact: true }).click();
+      await browserPanel.getByRole('status').filter({ hasText: 'Field filled.' }).waitFor();
+      for (let attempt = 0; !filled && attempt < 40; attempt++) await delay(25);
+      assert.equal(filled, 'LucentCue local-only approved draft');
+      assert.equal(submits, 0);
+      checked(
+        'Visible Chromium opens a local page, reads/attaches it, fills the approved field, and never submits',
+      );
+    } finally {
+      try {
+        await renderer.evaluate(() => window.desktop!.browserClose());
+      } finally {
+        await new Promise<void>((resolveClose, reject) =>
+          fixture.close((error) => (error ? reject(error) : resolveClose())),
+        );
+      }
+    }
+  }
   await browserPanel.getByRole('button', { name: 'Close browser panel' }).click();
   await renderer.getByRole('button', { name: /^New conversation/ }).click();
   assert.equal((await readState()).settings.alwaysOnTop, false);
@@ -467,7 +601,7 @@ try {
     `Desktop smoke passed: ${checks.length} checks. App-only screenshots: ${join(results, 'workspace.png')} and ${join(results, 'compact.png')}`,
   );
 } catch (error) {
-  if (renderer && !renderer.isClosed())
+  if (renderer && !renderer.isClosed() && !sensitiveCaptureActive)
     await renderer
       .screenshot({ path: join(results, 'failure.png'), animations: 'disabled', scale: 'css' })
       .catch(() => {});

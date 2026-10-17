@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   createBrowserController,
   inspectBrowserDocument,
+  launchAssistantBrowser,
   normalizeBrowserUrl,
 } from '../desktop/browser';
 
@@ -263,13 +264,9 @@ describe.skipIf(process.env.LUCENTCUE_BROWSER_TESTS !== '1')(
       if (!address || typeof address === 'string') throw new Error('Missing local server address');
       origin = `http://127.0.0.1:${address.port}`;
       directory = await mkdtemp(join(tmpdir(), 'lucentcue-browser-integration-'));
-      const { chromium } = await import('playwright');
       controller = createBrowserController(directory, {
         launch: async (profilePath) => {
-          context = await chromium.launchPersistentContext(profilePath, {
-            headless: true,
-            executablePath: process.env.LUCENTCUE_BROWSER_EXECUTABLE || undefined,
-          });
+          context = await launchAssistantBrowser(profilePath, true);
           return context;
         },
       });
@@ -329,6 +326,58 @@ describe.skipIf(process.env.LUCENTCUE_BROWSER_TESTS !== '1')(
       await expect(controller.fill(snapshot.fields[0].id, 'Text')).rejects.toThrow(
         /Read the current page again/,
       );
+    });
+
+    it('reads the tab the user selected instead of the previously read tab', async () => {
+      await controller.open(origin);
+      const first = context.pages()[0];
+      const second = await context.newPage();
+      try {
+        await second.goto(`${origin}/?second`);
+        await second.bringToFront();
+        expect((await controller.read()).url).toBe(`${origin}/?second`);
+        await first.bringToFront();
+        expect((await controller.read()).url).toBe(`${origin}/`);
+      } finally {
+        await second.close();
+      }
+    });
+
+    it('keeps the selected tab field valid when a background tab navigates or closes', async () => {
+      await controller.open(origin);
+      const first = context.pages()[0];
+      const background = await context.newPage();
+      try {
+        await background.goto(`${origin}/?background`);
+        await first.bringToFront();
+        const snapshot = await controller.read();
+        await background.goto(`${origin}/?background-refresh`);
+        await controller.fill(snapshot.fields[0].id, 'Still the selected field');
+        expect(await first.locator('#search').inputValue()).toBe('Still the selected field');
+        const nextSnapshot = await controller.read();
+        await background.close();
+        await controller.fill(nextSnapshot.fields[0].id, 'Background tab closed');
+        expect(await first.locator('#search').inputValue()).toBe('Background tab closed');
+      } finally {
+        if (!background.isClosed()) await background.close();
+      }
+    });
+
+    it('rejects an active-tab snapshot after a real same-URL reload', async () => {
+      await controller.open(origin);
+      const snapshot = await controller.read();
+      await context.pages()[0].reload();
+      await expect(controller.fill(snapshot.fields[0].id, 'An old snapshot')).rejects.toThrow(
+        /Read the current page again/,
+      );
+    });
+
+    it('closes Chromium and can reopen the same dedicated profile', async () => {
+      const previousPages = context.pages();
+      await controller.close();
+      expect(previousPages.every((page) => page.isClosed())).toBe(true);
+      await controller.open(origin);
+      expect((await controller.read()).url).toBe(`${origin}/`);
     });
   },
 );
