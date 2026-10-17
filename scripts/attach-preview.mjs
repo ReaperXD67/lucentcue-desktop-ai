@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { lstat, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { constants, createReadStream } from 'node:fs';
+import { copyFile, lstat, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -22,6 +22,10 @@ const gh = (args, inherit = false) =>
     maxBuffer: 16_000_000,
   });
 const api = (endpoint) => JSON.parse(gh(['api', '--method', 'GET', endpoint]));
+
+// GitHub normalizes spaces in uploaded asset names. Normalize before hashing so
+// the manifest names match the names users actually download.
+export const releaseFilename = (name) => name.replace(/[^A-Za-z0-9._-]/g, '.');
 
 export function validateRun(run, repository) {
   assert(run.path === '.github/workflows/build.yml', 'Source is not the native-package workflow.');
@@ -148,11 +152,12 @@ async function main() {
       const downloaded = await collectFiles(directory);
       const counts = {};
       for (const path of downloaded) {
-        const filename = basename(path);
+        const originalName = basename(path);
         assert(
-          /^[A-Za-z0-9][A-Za-z0-9._ ()+-]{0,180}\.(exe|dmg|AppImage|deb)$/.test(filename),
+          /^[A-Za-z0-9][A-Za-z0-9._ ()+-]{0,180}\.(exe|dmg|AppImage|deb)$/.test(originalName),
           'Unexpected artifact filename.',
         );
+        const filename = releaseFilename(originalName);
         assert(
           filename.includes(version) && !names.has(filename),
           'Artifact version or unique filename check failed.',
@@ -161,7 +166,9 @@ async function main() {
         assert(Object.hasOwn(expected, extension), 'Artifact contains an unexpected package type.');
         counts[extension] = (counts[extension] || 0) + 1;
         names.add(filename);
-        files.push(path);
+        const uploadPath = join(dirname(path), filename);
+        if (uploadPath !== path) await copyFile(path, uploadPath, constants.COPYFILE_EXCL);
+        files.push(uploadPath);
       }
       assert(
         Object.entries(expected).every(([extension, count]) => counts[extension] === count),
@@ -203,7 +210,7 @@ async function main() {
       const asset = verified.assets.find((item) => item.name === basename(path));
       assert(
         asset?.digest === `sha256:${checksums.get(basename(path))}`,
-        'Uploaded asset checksum verification failed.',
+        `Uploaded asset checksum verification failed: ${basename(path)}.`,
       );
     }
     console.log(
