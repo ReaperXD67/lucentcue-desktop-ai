@@ -2,22 +2,23 @@
 
 [![CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/workflows/ci.yml)
 
-An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Bring an OpenRouter, OpenAI, or Gemini key, keep your workspace a shortcut away, and choose exactly what you send.
+An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Keep a small companion one shortcut away, open the full workspace when you need it, and choose exactly what you send to your own OpenRouter, OpenAI, or Gemini account.
 
-**0.1.1 developer preview · MIT · Electron + React + TypeScript.** Locally packaged and installed on Windows; the next downloadable release targets `v0.1.1-preview.1`. [Published unsigned packages](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases) are available for Windows, macOS, and Linux. See [release status](#release-status) and [0.1.1 preview notes](docs/RELEASE_NOTES.md).
+**0.2.0 developer preview · MIT · Electron + React + TypeScript.** The next release targets `v0.2.0-preview.1`; its validation and publication are in progress. [Published unsigned packages](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases) are available for Windows, macOS, and Linux. See [release status](#release-status) and [preview notes](docs/RELEASE_NOTES.md).
 
 For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md). [Windows testing](docs/WINDOWS_TESTING.md) records actual installation results separately from capture/privacy checks and live model access.
 
-![LucentCue workspace with conversation sidebar, screenshot tools, and free model selection](docs/images/workspace.png)
+![LucentCue compact companion with a small composer, screenshot control, Settings, and Alt+W shortcut](docs/images/companion.png)
 
 ## What it does
 
-- Streams Markdown answers with a Stop button, model selection, and conversation search.
+- Starts in a compact companion for quick questions. Its Settings button opens the full workspace with connections, model selection, conversation search, and browser assistance.
+- Shares the active conversation, draft, and attachments between companion and workspace; streams Markdown answers with a Stop button.
 - Offers a **Free** mode restricted to currently verified zero-price OpenRouter models, with no automatic paid fallback.
 - Connects your own OpenRouter, OpenAI, and Gemini keys through Settings.
 - Captures a display from the UI or a configurable shortcut, then lets you preview or remove the screenshot before sending it to a vision model.
 - Opens a visible Chromium browser, reads page context for review, and fills a selected text field with text you approve. You submit in the browser.
-- Provides configurable show/hide and screenshot shortcuts, optional always-on-top, a tray menu, and Markdown export.
+- Provides configurable show/hide and screenshot shortcuts, optional always-on-top, an optional tray icon, and Markdown export.
 - Offers optional OS capture protection on Windows/macOS, with clear platform limitations.
 - Keeps conversations in memory by default; optional local history excludes screenshot images.
 
@@ -53,7 +54,7 @@ npm start
 
 ## Providers
 
-1. Open **Settings → Connections**, choose a provider, paste its API key, and select **Save key**.
+1. Select the companion's **Settings** button to open the full workspace. In **Connections**, choose a provider, paste its API key, and select **Save key**.
 2. Choose **Free** for OpenRouter's zero-price catalog, or **Bring your key** to select OpenRouter, OpenAI, or Gemini and the models available to your account.
 3. Select a model and send a question. Choose a model marked **vision** when attaching a screenshot.
 
@@ -65,12 +66,14 @@ There are no live model completions without a valid key. Keys are entered locall
 
 | Action | Default |
 | --- | --- |
-| Show / hide workspace | `Alt+R` |
+| Show / hide LucentCue | `Alt+W` |
 | Capture screenshot | `Alt+Shift+S` |
 | Send message | `Enter` |
 | New line | `Shift+Enter` |
 
-Change global shortcuts in Settings. If a shortcut is already taken, choose another; failed changes restore the previous bindings. Closing the workspace keeps the tray app running. Use **Quit LucentCue** in the tray menu to exit.
+Change global shortcuts in Settings. If a shortcut is already taken, choose another; failed changes restore the previous bindings. Upgrading replaces the former default `Alt+R` with `Alt+W` while preserving a custom binding. Closing the window keeps LucentCue running. Use **Quit LucentCue** in the app or tray menu to exit.
+
+The companion is a small resizable window; the full workspace opens from its Settings control. Switching views preserves the conversation and unsent draft. You can turn **Show tray icon** off to reduce notification-area clutter and restore it from Settings. This does not hide LucentCue from Task Manager or the operating system; keep your configured show/hide shortcut available when the tray icon is off. On Windows, **Keep window on top** uses a level above the taskbar to retain native topmost status reliably.
 
 In **Browser assist**, open a site, read the current visible tab, review its text, and attach it to your question. To write into the page, select a discovered field and review the exact text before filling it. Filling triggers normal website input events, which can save drafts or cause other website behavior. The model cannot submit forms or perform browser actions itself. The browser has a separate persistent profile; it does not attach to your everyday browser. See [supported fields and boundaries](docs/BROWSER.md).
 
@@ -111,11 +114,15 @@ The manual **Attach packages to draft preview** workflow transfers verified succ
 
 ## Release status
 
-For the published 0.1.0 baseline, [CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045557690) and [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045558099) passed on Windows/macOS/Linux, and the packaged Windows browser helper passed. Current 0.1.1 source passes **90 tests, including 8 real Chromium tests, and 17 Electron smoke checks** on Windows. The optional smoke paths exercised a real OS screenshot through preview/removal and a visible local-fixture browser through read/attach/approved fill with no form submission. The 0.1.1 Windows NSIS build and per-user upgrade passed, and the installed app opened. New-version cross-platform CI and release assets remain pending.
+Current 0.2.0 source passed **100 automated tests with headed Chromium enabled, repeated twice, and 21 Electron smoke checks** on Windows. Checks cover companion/workspace transitions, shared draft preservation, real screenshot preview/removal, visible browser read/attach/approved fill without submission, tray controls, shortcut recovery, and capture-protection state across view changes. Native keypress tests verified `Alt+W` hide/restore, `Alt+Shift+S` screenshot preview/removal, and restore with the tray icon off. These used an isolated source-test profile; 0.2.0 installed-package checks, cross-platform CI/packages, and publication remain pending.
 
-The installed Windows app loaded the public OpenRouter free-model catalog without a key. No personal key was supplied. Native `Alt+R` successfully hid the installed 0.1.1 window; global restore and screenshot keypress checks remain pending. A separate harmless Electron fixture was visible with protection off and black with protection on under the tested Windows DXGI Desktop Duplication path. GDI was inconclusive; WGC and actual OBS/Zoom recorders remain untested. See the [scoped evidence](docs/WINDOWS_TESTING.md#capture-observations). macOS/Linux runtime behavior, signing/notarization, and live provider completions remain unverified.
+Formatting and type checks passed; the dependency audit reported zero vulnerabilities. CI now runs the real Electron desktop smoke on Windows in addition to cross-platform source checks. Its hosted results are separate from the richer local screenshot/browser and native-keypress tests.
 
-0.1.1 fixes selected-tab reading, unchanged-shortcut re-registration, Copy answer through bounded trusted IPC, and oversized answers. Reusing completed message renders reduced a synthetic 4× CPU-throttled workload's median typing time from 16,543 to 549 ms and streaming time from 31,394 to 1,363 ms across five runs. These are local stress-comparison results, not network latency or installed-device guarantees; [method and limits](docs/WINDOWS_TESTING.md#synthetic-ui-comparison) are recorded separately.
+External FFmpeg DXGI recordings also tested the actual built LucentCue source app in both modes, using an empty isolated profile and no model calls: **all 18 protected frames were black; all 24 unprotected baseline/restored frames showed the app**. A separate harmless fixture passed too; GDI was inconclusive. These results cover the tested Windows recording path, not the installed binary, WGC, OBS, Zoom, or every recorder. No personal key was supplied, so live completions remain unverified. See [Windows test results and capture limits](docs/WINDOWS_TESTING.md). macOS/Linux runtime behavior, signing/notarization, and automatic updates remain unverified or unimplemented.
+
+The published baseline is [v0.1.0-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.1.0-preview.1). The intervening 0.1.1 source passed [cross-platform CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39049628563) and [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39049629404); those previous runs do not validate 0.2.0.
+
+Completed message rendering reuse improves long-conversation typing and streaming. The [local synthetic comparison](docs/WINDOWS_TESTING.md#synthetic-ui-comparison) records the workload, measurements, and limits separately from provider/network latency.
 
 ## Contributing and next steps
 

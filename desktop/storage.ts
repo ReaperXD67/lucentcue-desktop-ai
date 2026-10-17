@@ -2,10 +2,18 @@ import { mkdir, readFile, rename, stat, unlink, writeFile } from 'node:fs/promis
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { DEFAULT_SETTINGS } from '../shared/types';
-import type { Attachment, Conversation, Message, Provider, Settings } from '../shared/types';
+import type {
+  Attachment,
+  Conversation,
+  Message,
+  Provider,
+  Settings,
+  WindowMode,
+} from '../shared/types';
 
 export const PROVIDERS: Provider[] = ['openrouter', 'openai', 'gemini'];
 export const HISTORY_MAX_BYTES = 8_000_000;
+const SETTINGS_VERSION = 2;
 const SCREENSHOT_NOTE = '\n\n[Screenshot attached; image not saved to history.]';
 export interface EncryptionAdapter {
   isEncryptionAvailable(): boolean;
@@ -26,6 +34,11 @@ export function stringValue(value: unknown, label: string, limit = 200, empty = 
 export function validateProvider(value: unknown): Provider {
   if (!PROVIDERS.includes(value as Provider)) throw new Error('Choose a supported provider.');
   return value as Provider;
+}
+export function validateWindowMode(value: unknown): WindowMode {
+  if (value !== 'companion' && value !== 'workspace')
+    throw new Error('Choose companion or workspace mode.');
+  return value;
 }
 function shortcut(value: unknown): string {
   const raw = stringValue(value, 'Shortcut', 80);
@@ -50,7 +63,7 @@ function shortcut(value: unknown): string {
       key,
     )
   )
-    throw new Error('Use a shortcut such as Alt+R, Control+Shift+Space, or Command+J.');
+    throw new Error('Use a shortcut such as Alt+W, Control+Shift+Space, or Command+J.');
   const modifiers = pieces.map((piece) => aliases[piece.toLowerCase()]);
   if (modifiers.some((item) => !item) || new Set(modifiers).size !== modifiers.length)
     throw new Error('Shortcut modifiers are invalid.');
@@ -88,6 +101,9 @@ export function validateSettings(value: unknown): Settings {
       : input.captureProtection;
   if (typeof captureProtection !== 'boolean')
     throw new Error('captureProtection must be true or false.');
+  const showTrayIcon =
+    input.showTrayIcon === undefined ? DEFAULT_SETTINGS.showTrayIcon : input.showTrayIcon;
+  if (typeof showTrayIcon !== 'boolean') throw new Error('showTrayIcon must be true or false.');
   const toggle = shortcut(input.shortcut);
   const capture = shortcut(input.captureShortcut);
   if (toggle.toLowerCase() === capture.toLowerCase())
@@ -100,6 +116,7 @@ export function validateSettings(value: unknown): Settings {
     captureShortcut: capture,
     alwaysOnTop: input.alwaysOnTop as boolean,
     captureProtection,
+    showTrayIcon,
     saveHistory: input.saveHistory as boolean,
     systemPrompt: stringValue(input.systemPrompt, 'System prompt', 12_000),
   };
@@ -263,10 +280,26 @@ export class DesktopStorage {
   async init(): Promise<void> {
     await mkdir(this.directory, { recursive: true, mode: 0o700 });
     try {
-      this.settings = validateSettings({
+      const persisted = record(await readJson(join(this.directory, 'settings.json'), 100_000));
+      const loaded = validateSettings({
         ...DEFAULT_SETTINGS,
-        ...record(await readJson(join(this.directory, 'settings.json'), 100_000)),
+        ...persisted,
       });
+      // Upgrade the former default once. User-chosen shortcuts remain unchanged;
+      // validation/normalization alone never rewrites a newly selected Alt+R.
+      this.settings =
+        persisted.settingsVersion === undefined &&
+        loaded.shortcut === 'Alt+R' &&
+        loaded.captureShortcut !== DEFAULT_SETTINGS.shortcut
+          ? { ...loaded, shortcut: DEFAULT_SETTINGS.shortcut }
+          : loaded;
+      if (persisted.settingsVersion === undefined)
+        await atomicJson(join(this.directory, 'settings.json'), {
+          ...this.settings,
+          settingsVersion: SETTINGS_VERSION,
+        }).catch(() => {
+          this.notice = 'Updated settings are active for this session but could not be saved.';
+        });
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
         this.notice = 'Settings could not be read; safe defaults were loaded.';
@@ -323,14 +356,20 @@ export class DesktopStorage {
   saveSettings(settings: Settings): Promise<void> {
     return this.serialized(async () => {
       const previous = this.settings;
-      await atomicJson(join(this.directory, 'settings.json'), settings);
+      await atomicJson(join(this.directory, 'settings.json'), {
+        ...settings,
+        settingsVersion: SETTINGS_VERSION,
+      });
       if (!settings.saveHistory) {
         try {
           await unlink(join(this.directory, 'history.json')).catch((error) => {
             if (error.code !== 'ENOENT') throw error;
           });
         } catch (error) {
-          await atomicJson(join(this.directory, 'settings.json'), previous);
+          await atomicJson(join(this.directory, 'settings.json'), {
+            ...previous,
+            settingsVersion: SETTINGS_VERSION,
+          });
           throw error;
         }
         this.conversations = [];

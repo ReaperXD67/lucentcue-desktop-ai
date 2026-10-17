@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { Attachment, ChatEvent, DesktopAPI } from '../shared/types';
+import type { Attachment, ChatEvent, DesktopAPI, WindowMode } from '../shared/types';
 
 const api: DesktopAPI = {
   getState: () => ipcRenderer.invoke('app:state'),
@@ -23,8 +23,15 @@ const api: DesktopAPI = {
   saveConversations: (conversations) => ipcRenderer.invoke('app:history', conversations),
   exportConversation: (conversation) => ipcRenderer.invoke('app:export', conversation),
   copyText: (text) => ipcRenderer.invoke('app:copy', text),
+  setWindowMode: (mode) => ipcRenderer.invoke('app:window-mode:set', mode),
+  onWindowMode(callback) {
+    const listener = (_event: Electron.IpcRendererEvent, mode: WindowMode) => callback(mode);
+    ipcRenderer.on('app:window-mode', listener);
+    return () => ipcRenderer.removeListener('app:window-mode', listener);
+  },
   hide: () => ipcRenderer.invoke('app:hide'),
   minimize: () => ipcRenderer.invoke('app:minimize'),
+  quit: () => ipcRenderer.invoke('app:quit'),
   openExternal: (url) => ipcRenderer.invoke('app:external', url),
   browserOpen: (url) => ipcRenderer.invoke('browser:open', url),
   browserInstall: () => ipcRenderer.invoke('browser:install'),

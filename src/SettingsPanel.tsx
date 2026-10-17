@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { X } from 'lucide-react';
 import type { AppState, Provider, Settings } from '../shared/types';
+import { api } from './bridge';
 
 interface Props {
   state: AppState;
@@ -43,6 +44,7 @@ export default function SettingsPanel({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [historyError, setHistoryError] = useState('');
+  const [quitError, setQuitError] = useState('');
   const saveErrorRef = useRef<HTMLParagraphElement>(null);
   const keyErrorRef = useRef<HTMLParagraphElement>(null);
   const dirty = JSON.stringify(draft) !== JSON.stringify(state.settings);
@@ -88,7 +90,7 @@ export default function SettingsPanel({
           draft[name].trim(),
         )
       ) {
-        errors[name] = 'Include a modifier and key, for example Alt+R or Command+J.';
+        errors[name] = 'Include a modifier and key, for example Alt+W or Command+J.';
       }
     }
     if (draft.shortcut.trim().toLowerCase() === draft.captureShortcut.trim().toLowerCase())
@@ -269,7 +271,7 @@ export default function SettingsPanel({
                 id={`${id}-${name}-help`}
                 className={fieldErrors[name] ? 'form-error' : 'field-help'}
               >
-                {fieldErrors[name] || 'Use + between keys, e.g. Alt+R or Command+Shift+S.'}
+                {fieldErrors[name] || 'Use + between keys, e.g. Alt+W or Command+Shift+S.'}
               </p>
             </div>
           ))}
@@ -282,6 +284,21 @@ export default function SettingsPanel({
               onChange={(event) => update('alwaysOnTop', event.target.checked)}
             />
           </label>
+          <label className="toggle-row">
+            <span>Show tray icon</span>
+            <input
+              type="checkbox"
+              checked={draft.showTrayIcon}
+              disabled={saving}
+              aria-describedby={`${id}-tray-help`}
+              onChange={(event) => update('showTrayIcon', event.target.checked)}
+            />
+          </label>
+          <p className="field-help" id={`${id}-tray-help`}>
+            {draft.showTrayIcon
+              ? 'Open or quit LucentCue from the tray menu.'
+              : `Use ${draft.shortcut} or launch LucentCue again to restore a hidden window. The app remains visible in Task Manager.`}
+          </p>
           <label className="toggle-row">
             <span>Exclude window from screen capture</span>
             <input
@@ -383,6 +400,27 @@ export default function SettingsPanel({
         {historyError && (
           <p className="form-error" role="alert">
             {historyError}
+          </p>
+        )}
+      </section>
+      <section className="settings-section" aria-label="Application">
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={isPreview}
+          onClick={() => {
+            setQuitError('');
+            void api.quit().catch((error) => setQuitError(message(error)));
+          }}
+        >
+          Quit LucentCue
+        </button>
+        <p className="field-help">
+          Close the app completely. Unsaved conversation text will be lost.
+        </p>
+        {quitError && (
+          <p className="form-error" role="alert">
+            {quitError}
           </p>
         )}
       </section>

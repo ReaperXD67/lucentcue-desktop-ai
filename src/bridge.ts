@@ -4,10 +4,12 @@ import {
   type ChatEvent,
   type DesktopAPI,
   type Provider,
+  type WindowMode,
 } from '../shared/types';
 
 export const isPreview = !window.desktop;
 let previewState: AppState = {
+  windowMode: 'companion',
   settings: { ...DEFAULT_SETTINGS },
   keys: { openrouter: false, openai: false, gemini: false },
   conversations: [],
@@ -15,6 +17,7 @@ let previewState: AppState = {
   captureProtectionNotice: 'Capture privacy is available in supported desktop builds.',
 };
 const listeners = new Set<(event: ChatEvent) => void>();
+const windowModeListeners = new Set<(mode: WindowMode) => void>();
 const desktopOnly = async (): Promise<never> => {
   throw new Error(
     'Open the desktop app to use this feature. This browser view is an interface preview.',
@@ -23,6 +26,16 @@ const desktopOnly = async (): Promise<never> => {
 const preview: DesktopAPI = {
   async getState() {
     return structuredClone(previewState);
+  },
+  async setWindowMode(windowMode) {
+    previewState = { ...previewState, windowMode };
+    for (const listener of windowModeListeners) listener(windowMode);
+  },
+  onWindowMode(callback) {
+    windowModeListeners.add(callback);
+    return () => {
+      windowModeListeners.delete(callback);
+    };
   },
   async saveSettings(settings) {
     previewState = { ...previewState, settings };
@@ -69,6 +82,7 @@ const preview: DesktopAPI = {
   copyText: (text) => navigator.clipboard.writeText(text),
   async hide() {},
   async minimize() {},
+  quit: desktopOnly,
   async openExternal(url) {
     if (/^https?:\/\//i.test(url)) window.open(url, '_blank', 'noopener,noreferrer');
   },

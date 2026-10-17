@@ -1,39 +1,45 @@
 # Get started with LucentCue on Windows
 
-Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. Version 0.1.1 was installed and opened on Windows 11 Home. Current-PC results and source checks are recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied, so live model answers have not been verified.
+Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The 0.2.0 preview introduces a compact companion and a full workspace; its current validation status is recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied during testing, so live model answers have not been verified.
 
 ## Install or upgrade
 
-Use the [official releases page](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases) for available Windows installers and `SHA256SUMS.txt`. The locally verified 0.1.1 installer is installed; publication as `v0.1.1-preview.1` remains pending. The installer is unsigned. Open LucentCue from the Start menu after installation. Installed users do not need Node.js, npm, or a source checkout.
+Use the [official releases page](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases) for available Windows installers and `SHA256SUMS.txt`. Publication of `v0.2.0-preview.1` is in progress. The installer is unsigned. Open LucentCue from the Start menu after installation. Installed users do not need Node.js, npm, or a source checkout.
 
-The verified per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. For an upgrade, use **Quit LucentCue** in the tray menu first, then run the newer official installer and choose the same installation location. There is no automatic updater. If local history matters to you, export the conversations you want to keep before changing versions.
+The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. For an upgrade, use **Quit LucentCue** in the app or tray menu first, then run the newer official installer and choose the same installation location. There is no automatic updater. If local history matters to you, export the conversations you want to keep before changing versions.
+
+## Companion and workspace
+
+LucentCue starts as a small companion for questions and answers. Select its **Settings** button to open the full workspace and Settings. The full workspace contains connection setup, model selection, history controls, browser assistance, and exports. Return to the companion when you want a smaller window. Both views share the active conversation, unsent draft, and attachments; switching views does not send a message.
 
 ## Connect your personal OpenRouter key
 
 You can browse OpenRouter's public free-model catalog without a key. This was observed in the installed preview, including **Free Models Router · vision**. Generating answers still requires a personal key; catalog loading is not a completion test. You can leave key setup for later.
 
 1. Sign in to [OpenRouter's key settings](https://openrouter.ai/settings/keys) and create a dedicated personal key for LucentCue. Review its account and spending controls.
-2. In LucentCue, choose **Settings → Connections → Provider → OpenRouter**. Paste the key into the password field and select **Save key**. Enter it directly in the app; never put it in chat, a bug report, source code, or Git.
+2. Select the companion's **Settings** button, then choose **Connections → Provider → OpenRouter**. Paste the key into the password field and select **Save key**. Enter it directly in the app; never put it in chat, a bug report, source code, or Git.
 3. Confirm **Key configured**, then close Settings. This confirms local storage, not that a provider has accepted the credential.
 4. Keep **Free** selected below the composer and choose **Free models router** (`openrouter/free`). Send a harmless question such as “Reply with one short sentence about trees” to check live access.
 
 The [free router](https://openrouter.ai/docs/cookbook/get-started/free-models-router-playground) chooses an available compatible free model. LucentCue checks zero pricing before each free request and does not fall back to a paid model. **Bring your key** mode can use paid models; stay in **Free** for free-model routing.
 
-Free access is limited by [OpenRouter's current quotas](https://openrouter.ai/docs/api_reference/limits), account policy, and provider capacity. At this guide's 17 October 2026 check, the published policy was 20 requests/minute and 50/day below the credit-purchase threshold, with a higher daily tier after qualifying credit purchases. These limits can change. A 429 means wait before retrying; changing client keys does not create extra quota. If the catalog or router is unavailable, retry later or select another currently listed free model.
+Free access is limited by [OpenRouter's current quotas](https://openrouter.ai/docs/api_reference/limits), account policy, and provider capacity. Limits and account tiers can change. A 429 means wait before retrying; changing client keys does not create extra quota. If the catalog or router is unavailable, retry later or select another currently listed free model.
 
 ## Shortcuts and everyday controls
 
 | Action | Default | Scope |
 | --- | --- | --- |
-| Show or hide LucentCue | `Alt+R` | Global, while LucentCue is running |
+| Show or hide LucentCue | `Alt+W` | Global, while LucentCue is running |
 | Capture a display | `Alt+Shift+S` | Global, while LucentCue is running |
 | Send a message | `Enter` | Message input focused |
 | Insert a new line | `Shift+Enter` | Message input focused |
-| Close the workspace to its tray | `Alt+F4` | Standard Windows close action; does not quit LucentCue |
+| Hide the current window | `Alt+F4` | Standard Windows close action; does not quit LucentCue |
 
-Change the two global shortcuts in **Settings → Workspace**, then select **Save settings**. Use a modifier and key, such as `Control+Shift+Space`. If another app owns the combination, choose another; failed changes restore the previous bindings. New conversation, Search conversations, Export, and Stop generating are UI buttons without dedicated app shortcuts.
+Change the two global shortcuts in **Settings → Workspace**, then select **Save settings**. Use a modifier and key, such as `Control+Shift+Space`. If another app owns the combination, choose another; failed changes restore the previous bindings. When upgrading, the old default `Alt+R` becomes `Alt+W`; custom bindings are kept. New conversation, Search conversations, Export, and Stop generating are UI buttons without dedicated app shortcuts.
 
-The titlebar **X** hides the workspace; **−** minimizes it. Click the tray icon to show/hide it, or use the tray menu's **Open LucentCue**, **Take screenshot**, and **Quit LucentCue**. The pin button or **Keep window on top** setting controls topmost behavior.
+The titlebar **X** hides the window; **−** minimizes it. Click the tray icon to show/hide it, or use the tray menu's **Open companion**, **Open workspace**, **Take screenshot**, and **Quit LucentCue**. The pin button or **Keep window on top** setting controls topmost behavior. On Windows, pinning uses a level above the taskbar because the default floating level could immediately lose native topmost status on the tested system.
+
+Turn **Show tray icon** off in Settings if you want less notification-area clutter. Keep your show/hide shortcut available, or launch LucentCue from Start to reopen it. **Quit LucentCue** in the app exits even when the tray icon is off. This setting does not conceal the app from Task Manager, process lists, or operating-system monitoring.
 
 ## Screenshots and browser assistance
 

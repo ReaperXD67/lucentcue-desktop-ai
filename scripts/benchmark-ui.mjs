@@ -35,6 +35,7 @@ const fixture = {
     provider: 'openrouter',
     model: 'openrouter/free',
     shortcut: 'Alt+R',
+    showTrayIcon: true,
     captureShortcut: 'Alt+Shift+S',
     alwaysOnTop: false,
     captureProtection: false,
@@ -42,6 +43,7 @@ const fixture = {
     systemPrompt: 'Synthetic benchmark only.',
   },
   keys: { openrouter: true, openai: false, gemini: false },
+  windowMode: 'workspace',
   conversations: [
     { id: 'fixture-conversation', title: 'Synthetic performance fixture', updatedAt: 1, messages },
   ],
@@ -101,6 +103,13 @@ await page.addInitScript((state) => {
     async getState() {
       return structuredClone(state);
     },
+    async setWindowMode(mode) {
+      state.windowMode = mode;
+    },
+    onWindowMode() {
+      return () => {};
+    },
+    async quit() {},
     async saveSettings(settings) {
       state.settings = settings;
       return settings;

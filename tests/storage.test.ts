@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DEFAULT_SETTINGS } from '../shared/types';
@@ -10,6 +10,7 @@ import {
   sanitizeHistoryPayload,
   validateMessages,
   validateSettings,
+  validateWindowMode,
 } from '../desktop/storage';
 import type { EncryptionAdapter } from '../desktop/storage';
 
@@ -214,14 +215,63 @@ describe('history policy', () => {
 });
 
 describe('IPC payload validators', () => {
+  it('accepts only the two supported native window modes', () => {
+    expect(validateWindowMode('companion')).toBe('companion');
+    expect(validateWindowMode('workspace')).toBe('workspace');
+    for (const invalid of ['hidden', '', null, {}, ['companion'], true])
+      expect(() => validateWindowMode(invalid)).toThrow('companion or workspace');
+  });
   it('normalizes shortcuts and forces free mode to OpenRouter', () => {
     expect(
       validateSettings({ ...DEFAULT_SETTINGS, provider: 'openai', shortcut: 'ctrl+shift+r' }),
     ).toMatchObject({ provider: 'openrouter', shortcut: 'Control+Shift+R' });
-    expect(() => validateSettings({ ...DEFAULT_SETTINGS, captureShortcut: 'Alt+R' })).toThrow(
+    expect(() => validateSettings({ ...DEFAULT_SETTINGS, captureShortcut: 'Alt+W' })).toThrow(
       'different',
     );
     expect(() => validateSettings({ ...DEFAULT_SETTINGS, shortcut: 'R' })).toThrow('shortcut');
+  });
+  it('defaults the visible tray on for legacy settings and persists an explicit disabled choice', async () => {
+    const { showTrayIcon: _removed, ...legacy } = DEFAULT_SETTINGS;
+    expect(validateSettings(legacy).showTrayIcon).toBe(true);
+    expect(() => validateSettings({ ...DEFAULT_SETTINGS, showTrayIcon: 'false' })).toThrow(
+      'must be true or false',
+    );
+    const storage = new DesktopStorage(directory, secure);
+    await storage.init();
+    await storage.saveSettings({ ...DEFAULT_SETTINGS, showTrayIcon: false });
+    const reloaded = new DesktopStorage(directory, secure);
+    await reloaded.init();
+    expect(reloaded.settings.showTrayIcon).toBe(false);
+  });
+  it('migrates the former default to Alt+W once while preserving subsequent user choices', async () => {
+    const { showTrayIcon: _removed, ...legacy } = DEFAULT_SETTINGS;
+    await writeFile(
+      join(directory, 'settings.json'),
+      JSON.stringify({ ...legacy, shortcut: 'alt+r' }),
+    );
+    const storage = new DesktopStorage(directory, secure);
+    await storage.init();
+    expect(storage.settings.shortcut).toBe('Alt+W');
+    expect(storage.settings.showTrayIcon).toBe(true);
+    const migrated = JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8'));
+    expect(migrated.settingsVersion).toBe(2);
+    await storage.saveSettings({ ...storage.settings, shortcut: 'Alt+R' });
+    const reloaded = new DesktopStorage(directory, secure);
+    await reloaded.init();
+    expect(reloaded.settings.shortcut).toBe('Alt+R');
+  });
+  it.each([
+    { shortcut: 'Control+Shift+Space', captureShortcut: 'Alt+Shift+S' },
+    { shortcut: 'Alt+R', captureShortcut: 'Alt+W' },
+  ])('preserves custom legacy shortcuts without introducing a collision: %o', async (shortcuts) => {
+    await writeFile(
+      join(directory, 'settings.json'),
+      JSON.stringify({ ...DEFAULT_SETTINGS, ...shortcuts }),
+    );
+    const storage = new DesktopStorage(directory, secure);
+    await storage.init();
+    expect(storage.settings).toMatchObject(shortcuts);
+    expect(() => validateSettings(storage.settings)).not.toThrow();
   });
   it('migrates old settings with capture protection off and rejects non-boolean values', async () => {
     const { captureProtection: _removed, ...legacy } = DEFAULT_SETTINGS;

@@ -36,3 +36,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Check the real Windows desktop runtime
+        if: runner.os == 'Windows'
+        run: npm run test:desktop

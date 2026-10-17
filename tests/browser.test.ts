@@ -1,8 +1,9 @@
 import { EventEmitter } from 'node:events';
 import { createServer, type Server } from 'node:http';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import type { BrowserContext } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
@@ -10,6 +11,7 @@ import {
   inspectBrowserDocument,
   launchAssistantBrowser,
   normalizeBrowserUrl,
+  stopOwnedBrowser,
 } from '../desktop/browser';
 
 class FakePage extends EventEmitter {
@@ -127,6 +129,79 @@ describe('website URL validation', () => {
   ])('rejects %s before navigation', (input) => expect(() => normalizeBrowserUrl(input)).toThrow());
 });
 
+describe('owned Chromium shutdown', () => {
+  it('waits for graceful process exit without terminating it', async () => {
+    let exited = false;
+    let resolveExit!: () => void;
+    const exit = new Promise<void>((resolve) => {
+      resolveExit = resolve;
+    });
+    const terminate = vi.fn();
+    const disconnect = vi.fn(async () => {
+      expect(exited).toBe(true);
+    });
+    await stopOwnedBrowser(
+      {
+        requestClose: async () => {
+          exited = true;
+          resolveExit();
+        },
+        disconnect,
+        exited: exit,
+        hasExited: () => exited,
+        terminate,
+      },
+      20,
+    );
+    expect(terminate).not.toHaveBeenCalled();
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
+
+  it('bounds a hung close/disconnect and waits for its terminated child to exit', async () => {
+    let exited = false;
+    let resolveExit!: () => void;
+    const exit = new Promise<void>((resolve) => {
+      resolveExit = resolve;
+    });
+    const requestClose = vi.fn(() => new Promise<void>(() => {}));
+    const disconnect = vi.fn(() => {
+      expect(exited).toBe(true);
+      return new Promise<void>(() => {});
+    });
+    const terminate = vi.fn(() => {
+      setTimeout(() => {
+        exited = true;
+        resolveExit();
+      }, 1);
+    });
+    await stopOwnedBrowser(
+      { requestClose, disconnect, exited: exit, hasExited: () => exited, terminate },
+      20,
+    );
+    expect(requestClose).toHaveBeenCalledOnce();
+    expect(terminate).toHaveBeenCalledOnce();
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(exited).toBe(true);
+  });
+
+  it('reports an owned process that could not be terminated instead of reopening its locked profile', async () => {
+    const terminate = vi.fn();
+    await expect(
+      stopOwnedBrowser(
+        {
+          requestClose: () => new Promise<void>(() => {}),
+          disconnect: async () => {},
+          exited: new Promise<void>(() => {}),
+          hasExited: () => false,
+          terminate,
+        },
+        5,
+      ),
+    ).rejects.toThrow('has not closed yet');
+    expect(terminate).toHaveBeenCalledOnce();
+  });
+});
+
 describe('user directed browser controller', () => {
   it('does not launch for invalid URLs', async () => {
     const { controller, launch } = fixture();
@@ -218,6 +293,22 @@ describe('user directed browser controller', () => {
     expect((await controller.read()).fields).toEqual([]);
   });
 
+  it('refuses to read or fill when every assistant tab is hidden', async () => {
+    const { controller, page, pages } = fixture();
+    await controller.open('example.com');
+    const snapshot = await controller.read();
+    page.visible = false;
+    const background = new FakePage();
+    background.visible = false;
+    pages.push(background);
+    await expect(controller.fill(snapshot.fields[0].id, 'Text')).rejects.toThrow(
+      /Select a visible website tab/,
+    );
+    expect(page.element.fill).not.toHaveBeenCalled();
+    expect(background.element.fill).not.toHaveBeenCalled();
+    await expect(controller.read()).rejects.toThrow(/Select a visible website tab/);
+  });
+
   it('invalidates an old reference when another read starts', async () => {
     const { controller } = fixture();
     await controller.open('example.com');
@@ -266,7 +357,10 @@ describe.skipIf(process.env.LUCENTCUE_BROWSER_TESTS !== '1')(
       directory = await mkdtemp(join(tmpdir(), 'lucentcue-browser-integration-'));
       controller = createBrowserController(directory, {
         launch: async (profilePath) => {
-          context = await launchAssistantBrowser(profilePath, true);
+          context = await launchAssistantBrowser(
+            profilePath,
+            process.env.LUCENTCUE_BROWSER_HEADED_TESTS !== '1',
+          );
           return context;
         },
       });
@@ -343,6 +437,62 @@ describe.skipIf(process.env.LUCENTCUE_BROWSER_TESTS !== '1')(
       }
     });
 
+    it.skipIf(process.env.LUCENTCUE_BROWSER_HEADED_TESTS !== '1' || process.platform !== 'win32')(
+      'reads the selected tab under another window while rejecting a minimized browser',
+      async () => {
+        await controller.open(origin);
+        const first = context.pages()[0];
+        const selected = await context.newPage();
+        const cdp = await context.newCDPSession(first);
+        const { windowId, bounds } = await cdp.send('Browser.getWindowForTarget');
+        const { chromium } = await import('playwright');
+        let cover: Awaited<ReturnType<typeof chromium.launch>> | undefined;
+        try {
+          await cdp.send('Browser.setWindowBounds', {
+            windowId,
+            bounds: { left: 0, top: 0, width: 640, height: 480, windowState: 'normal' },
+          });
+          await selected.goto(`${origin}/?covered-selected`);
+          await selected.bringToFront();
+          cover = await chromium.launch({
+            headless: false,
+            args: ['--window-position=0,0', '--window-size=1000,800'],
+          });
+          const coverPage = await cover.newPage();
+          await coverPage.setContent(
+            '<title>Local occlusion check</title><h1>Harmless local cover</h1>',
+          );
+          await coverPage.bringToFront();
+          // Native window occlusion is asynchronous. Leave time for Windows to
+          // classify the covered target before testing a background IPC read.
+          await delay(1500);
+          expect(await first.evaluate(() => document.visibilityState)).toBe('hidden');
+          expect(await selected.evaluate(() => document.visibilityState)).toBe('visible');
+          const snapshot = await controller.read();
+          expect(snapshot.url).toBe(`${origin}/?covered-selected`);
+          await controller.fill(snapshot.fields[0].id, 'Approved while covered');
+          expect(await selected.locator('#search').inputValue()).toBe('Approved while covered');
+
+          await cdp.send('Browser.setWindowBounds', {
+            windowId,
+            bounds: { windowState: 'minimized' },
+          });
+          await expect.poll(() => selected.evaluate(() => document.visibilityState)).toBe('hidden');
+          await expect(controller.read()).rejects.toThrow(/Select a visible website tab/);
+        } finally {
+          await cdp.send('Browser.setWindowBounds', {
+            windowId,
+            bounds: { windowState: 'normal' },
+          });
+          await cdp.send('Browser.setWindowBounds', { windowId, bounds });
+          await cdp.detach();
+          await cover?.close();
+          if (!selected.isClosed()) await selected.close();
+          await first.bringToFront();
+        }
+      },
+    );
+
     it('keeps the selected tab field valid when a background tab navigates or closes', async () => {
       await controller.open(origin);
       const first = context.pages()[0];
@@ -372,12 +522,18 @@ describe.skipIf(process.env.LUCENTCUE_BROWSER_TESTS !== '1')(
       );
     });
 
-    it('closes Chromium and can reopen the same dedicated profile', async () => {
-      const previousPages = context.pages();
-      await controller.close();
-      expect(previousPages.every((page) => page.isClosed())).toBe(true);
-      await controller.open(origin);
-      expect((await controller.read()).url).toBe(`${origin}/`);
+    it('reopens the same dedicated profile with a fresh endpoint over repeated close cycles', async () => {
+      for (let cycle = 0; cycle < 3; cycle++) {
+        const previousPages = context.pages();
+        const previousMarker = await readFile(join(directory, 'DevToolsActivePort'), 'utf8');
+        await controller.close();
+        expect(previousPages.every((page) => page.isClosed())).toBe(true);
+        await controller.open(origin);
+        expect(await readFile(join(directory, 'DevToolsActivePort'), 'utf8')).not.toBe(
+          previousMarker,
+        );
+        expect((await controller.read()).url).toBe(`${origin}/`);
+      }
     });
   },
 );

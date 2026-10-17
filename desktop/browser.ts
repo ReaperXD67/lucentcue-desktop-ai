@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { debuglog } from 'node:util';
 import type { BrowserContext, CDPSession, ElementHandle, Frame, Locator, Page } from 'playwright';
 import type { BrowserController, BrowserSnapshot } from '../shared/types';
 
@@ -12,6 +13,7 @@ const TEXT_LIMIT = 12_000;
 const FIELD_LIMIT = 50;
 const CLOSED = 'The assistant browser is closed. Open a website first.';
 const STALE = 'The page or field changed. Read the current page again before filling.';
+const debug = debuglog('lucentcue-browser');
 
 /** Strictly validate before launching a browser or sending a navigation request. */
 export function normalizeBrowserUrl(input: string): string {
@@ -206,6 +208,51 @@ export interface BrowserDependencies {
   createId?: () => string;
 }
 
+interface OwnedBrowserLifecycle {
+  requestClose(): Promise<unknown>;
+  disconnect(): Promise<unknown>;
+  exited: Promise<void>;
+  hasExited(): boolean;
+  terminate(): void;
+}
+
+/** Bound an unresponsive CDP shutdown and wait for the owned process to release its profile. */
+export async function stopOwnedBrowser(
+  lifecycle: OwnedBrowserLifecycle,
+  timeoutMs = 1500,
+): Promise<void> {
+  const bounded = async (operation: Promise<unknown>): Promise<void> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        operation.catch(() => {}),
+        new Promise<void>((resolveWait) => {
+          timer = setTimeout(resolveWait, timeoutMs);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  // Browser.close may never acknowledge its CDP command. Process exit, rather
+  // than that acknowledgement, determines when the dedicated profile is free.
+  if (!lifecycle.hasExited()) {
+    void lifecycle.requestClose().catch(() => {});
+    await bounded(lifecycle.exited);
+  }
+  if (!lifecycle.hasExited()) {
+    try {
+      lifecycle.terminate();
+    } catch {
+      // The exit check below reports a bounded, useful error if termination fails.
+    }
+    await bounded(lifecycle.exited);
+  }
+  await bounded(lifecycle.disconnect());
+  if (!lifecycle.hasExited())
+    throw new Error('The assistant browser has not closed yet. Wait a moment and try again.');
+}
+
 /** Launch a separate standard Chromium profile without emulating every tab's focus.
  * headless is used only by local integration tests; the application always passes false.
  */
@@ -217,7 +264,13 @@ export async function launchAssistantBrowser(
   const directory = resolve(profilePath);
   await mkdir(directory, { recursive: true });
   const markerPath = join(directory, 'DevToolsActivePort');
-  const previousMarker = await readFile(markerPath, 'utf8').catch(() => undefined);
+  // Chromium can leave a stale endpoint file after shutdown. Remove only our
+  // dedicated profile's marker before a fresh launch so endpoint discovery
+  // observes the newly created file.
+  await unlink(markerPath).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error;
+  });
+  debug('launch starting (headed=%s)', !headless);
   const child = spawn(
     chromium.executablePath(),
     [
@@ -226,6 +279,10 @@ export async function launchAssistantBrowser(
       '--no-first-run',
       '--no-default-browser-check',
       '--enable-automation',
+      // Reading happens from LucentCue's window, which may cover Chromium.
+      // Keep native occlusion from hiding its selected tab, without emulating
+      // focus/visibility for background tabs (which breaks selected-tab reads).
+      '--disable-backgrounding-occluded-windows',
       ...(headless ? ['--headless=new'] : []),
       'about:blank',
     ],
@@ -234,6 +291,7 @@ export async function launchAssistantBrowser(
   let exited = false;
   const childEnded = new Promise<void>((resolveEnded) => {
     child.once('exit', () => {
+      debug('child %s exited', child.pid);
       exited = true;
       resolveEnded();
     });
@@ -251,22 +309,20 @@ export async function launchAssistantBrowser(
   let control: CDPSession | undefined;
   let closing: Promise<void> | undefined;
   const stop = (): Promise<void> => {
+    debug('stop requested for child %s (exited=%s)', child.pid, exited);
     if (!closing)
-      closing = (async () => {
+      closing = stopOwnedBrowser({
         // Closing a CDP connection alone can leave Chromium running. Close its
         // owned browser explicitly, then release the connection and child process.
-        if (control && browser?.isConnected()) await control.send('Browser.close').catch(() => {});
-        await browser?.close().catch(() => {});
-        if (!exited)
-          await new Promise<void>((resolveWait) => {
-            const timer = setTimeout(resolveWait, 1500);
-            void childEnded.then(() => {
-              clearTimeout(timer);
-              resolveWait();
-            });
-          });
-        if (!exited) child.kill();
-      })();
+        requestClose: () =>
+          control && browser?.isConnected() ? control.send('Browser.close') : Promise.resolve(),
+        disconnect: () => browser?.close() || Promise.resolve(),
+        exited: childEnded,
+        hasExited: () => exited,
+        terminate: () => {
+          child.kill();
+        },
+      });
     return closing;
   };
   try {
@@ -275,7 +331,7 @@ export async function launchAssistantBrowser(
     while (!endpoint && Date.now() < deadline) {
       if (exited) throw new Error('Chromium closed before its separate profile was ready.');
       const marker = await readFile(markerPath, 'utf8').catch(() => undefined);
-      if (marker && marker !== previousMarker && marker.length < 1024) {
+      if (marker && marker.length < 1024) {
         const [port, path] = marker.trim().split(/\r?\n/);
         if (
           /^\d{1,5}$/.test(port) &&
@@ -289,6 +345,7 @@ export async function launchAssistantBrowser(
       if (!endpoint) await delay(25);
     }
     if (!endpoint) throw new Error('Chromium did not finish starting.');
+    debug('child %s endpoint ready', child.pid);
     // Playwright's default focus override makes all tabs report focused/visible,
     // which prevents observing the tab a person actually selected.
     browser = await chromium.connectOverCDP(endpoint, {
@@ -296,10 +353,12 @@ export async function launchAssistantBrowser(
       timeout: Math.max(1, deadline - Date.now()),
     });
     control = await browser.newBrowserCDPSession();
+    debug('child %s CDP connected', child.pid);
     await control.send('Browser.setDownloadBehavior', { behavior: 'deny' });
     const context = browser.contexts()[0];
     if (!context) throw new Error('Chromium did not expose its separate profile.');
     context.close = stop;
+    debug('child %s context ready', child.pid);
     return context;
   } catch (error) {
     await stop();

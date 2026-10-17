@@ -14,13 +14,13 @@ import {
   systemPreferences,
   Tray,
 } from 'electron';
-import type { IpcMainInvokeEvent } from 'electron';
+import type { IpcMainInvokeEvent, Rectangle } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { access, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import type { Attachment, ChatEvent, ChatRequest, Settings } from '../shared/types';
+import type { Attachment, ChatEvent, ChatRequest, Settings, WindowMode } from '../shared/types';
 import { createBrowserController } from './browser';
 import { BrowserInstaller } from './browser-installer';
 import { getModels, streamChat } from './providers';
@@ -32,6 +32,7 @@ import {
   validateMessages,
   validateProvider,
   validateSettings,
+  validateWindowMode,
 } from './storage';
 
 app.setName('LucentCue');
@@ -48,6 +49,12 @@ let capturing = false;
 let settingsBusy = false;
 let storage: DesktopStorage;
 let trustedURL = '';
+let windowMode: WindowMode = 'companion';
+const modeSizes = {
+  companion: { width: 480, height: 380, minWidth: 360, minHeight: 240 },
+  workspace: { width: 1240, height: 820, minWidth: 880, minHeight: 620 },
+};
+const modeBounds: Partial<Record<WindowMode, Rectangle>> = {};
 let captureProtectionSupported = process.platform === 'win32' || process.platform === 'darwin';
 let captureProtectionNotice =
   process.platform === 'win32'
@@ -81,6 +88,57 @@ function toggle(): void {
   if (window?.isVisible() && !window.isMinimized()) window.hide();
   else show();
 }
+function setWindowMode(next: WindowMode): void {
+  if (!window || window.isDestroyed()) throw new Error('The application window is unavailable.');
+  if (next !== windowMode) {
+    const current = window.getNormalBounds();
+    modeBounds[windowMode] = current;
+    const saved = modeBounds[next];
+    const desired = modeSizes[next];
+    const area = screen.getDisplayMatching(saved || current).workArea;
+    const width = Math.min(Math.max(saved?.width || desired.width, desired.minWidth), area.width);
+    const height = Math.min(
+      Math.max(saved?.height || desired.height, desired.minHeight),
+      area.height,
+    );
+    const x = saved?.x ?? Math.round(current.x + (current.width - width) / 2);
+    const y = saved?.y ?? Math.round(current.y + (current.height - height) / 2);
+    if (window.isFullScreen()) window.setFullScreen(false);
+    if (window.isMaximized()) window.unmaximize();
+    window.setMinimumSize(
+      Math.min(desired.minWidth, area.width),
+      Math.min(desired.minHeight, area.height),
+    );
+    window.setBounds({
+      width,
+      height,
+      x: Math.max(area.x, Math.min(x, area.x + area.width - width)),
+      y: Math.max(area.y, Math.min(y, area.y + area.height - height)),
+    });
+    windowMode = next;
+    // Reapply the supported OS flag after native geometry/style changes.
+    applyCaptureProtection();
+    applyAlwaysOnTop(storage.settings.alwaysOnTop);
+  }
+  window.webContents.send('app:window-mode', next);
+  show();
+}
+function applyCaptureProtection(): void {
+  if (!captureProtectionSupported || !window || window.isDestroyed()) return;
+  try {
+    window.setContentProtection(storage.settings.captureProtection);
+  } catch {
+    captureProtectionSupported = false;
+    captureProtectionNotice =
+      'Window capture exclusion is unavailable on this system. Capture protection cannot be guaranteed.';
+  }
+}
+function applyAlwaysOnTop(enabled: boolean): void {
+  // Electron's Windows floating level moves behind the taskbar, which can
+  // demote the window when that taskbar is non-topmost. The documented popup
+  // level keeps an explicitly pinned window pinned without changing OS settings.
+  window?.setAlwaysOnTop(enabled, process.platform === 'win32' ? 'pop-up-menu' : 'floating');
+}
 function emit(event: ChatEvent): void {
   if (window && !window.isDestroyed()) window.webContents.send('chat:event', event);
 }
@@ -102,7 +160,12 @@ function handle(channel: string, action: (...args: any[]) => unknown): void {
 }
 
 function installShortcuts(next: Settings, previous?: Settings): void {
-  if (previous?.shortcut === next.shortcut && previous.captureShortcut === next.captureShortcut)
+  if (
+    previous?.shortcut === next.shortcut &&
+    previous.captureShortcut === next.captureShortcut &&
+    globalShortcut.isRegistered(next.shortcut) &&
+    globalShortcut.isRegistered(next.captureShortcut)
+  )
     return;
   const handlers = new Map<string, () => void>([
     [next.shortcut, toggle],
@@ -223,6 +286,7 @@ async function captureScreen(): Promise<Attachment> {
 
 function registerIPC(): void {
   handle('app:state', () => ({
+    windowMode,
     settings: storage.settings,
     keys: storage.keyStatus(),
     conversations: storage.conversations,
@@ -238,8 +302,11 @@ function registerIPC(): void {
     try {
       installShortcuts(next, previous);
       try {
+        if (!next.showTrayIcon && !globalShortcut.isRegistered(next.shortcut))
+          throw new Error('Keep the tray icon visible until the show/hide shortcut is registered.');
         if (captureProtectionSupported && window && !window.isDestroyed())
           window.setContentProtection(next.captureProtection);
+        setTrayVisible(next.showTrayIcon);
         await storage.saveSettings(next);
       } catch (error) {
         if (captureProtectionSupported && window && !window.isDestroyed()) {
@@ -249,10 +316,11 @@ function registerIPC(): void {
             /* Retain original error. */
           }
         }
+        setTrayVisible(previous.showTrayIcon);
         installShortcuts(previous, next);
         throw error;
       }
-      window?.setAlwaysOnTop(next.alwaysOnTop);
+      applyAlwaysOnTop(next.alwaysOnTop);
       return next;
     } finally {
       settingsBusy = false;
@@ -331,6 +399,8 @@ function registerIPC(): void {
     return true;
   });
   handle('app:hide', () => window?.hide());
+  handle('app:window-mode:set', (value: unknown) => setWindowMode(validateWindowMode(value)));
+  handle('app:quit', () => app.quit());
   handle('app:copy', (value: unknown) => {
     return clipboard.writeText(stringValue(value, 'Clipboard text', 100_000, true));
   });
@@ -354,6 +424,7 @@ function registerIPC(): void {
 }
 
 function makeTray(): void {
+  if (tray && !tray.isDestroyed()) return;
   const pixels = Buffer.alloc(24 * 24 * 4);
   for (let y = 0; y < 24; y++)
     for (let x = 0; x < 24; x++) {
@@ -369,7 +440,8 @@ function makeTray(): void {
   tray.setToolTip('LucentCue — desktop AI assistant');
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: 'Open LucentCue', click: show },
+      { label: 'Open companion', click: () => setWindowMode('companion') },
+      { label: 'Open workspace', click: () => setWindowMode('workspace') },
       {
         label: 'Take screenshot',
         click: () => {
@@ -387,16 +459,25 @@ function makeTray(): void {
   );
   tray.on('click', toggle);
 }
+function setTrayVisible(visible: boolean): void {
+  if (visible) makeTray();
+  else {
+    tray?.destroy();
+    tray = null;
+  }
+}
 
 async function start(): Promise<void> {
   storage = new DesktopStorage(join(app.getPath('userData'), 'local'), safeStorage);
   await storage.init();
   const iconPath = join(app.getAppPath(), 'assets', 'icon.png');
+  const area = screen.getPrimaryDisplay().workArea;
+  const size = modeSizes.companion;
   window = new BrowserWindow({
-    width: 1240,
-    height: 820,
-    minWidth: 880,
-    minHeight: 620,
+    width: Math.min(size.width, area.width),
+    height: Math.min(size.height, area.height),
+    minWidth: Math.min(size.minWidth, area.width),
+    minHeight: Math.min(size.minHeight, area.height),
     show: false,
     title: 'LucentCue',
     frame: false,
@@ -414,15 +495,7 @@ async function start(): Promise<void> {
       spellcheck: true,
     },
   });
-  if (captureProtectionSupported) {
-    try {
-      window.setContentProtection(storage.settings.captureProtection);
-    } catch {
-      captureProtectionSupported = false;
-      captureProtectionNotice =
-        'Window capture exclusion is unavailable on this system. Capture protection cannot be guaranteed.';
-    }
-  }
+  applyCaptureProtection();
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-attach-webview', (event) => event.preventDefault());
   window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) =>
@@ -454,14 +527,20 @@ async function start(): Promise<void> {
     }
   });
   registerIPC();
-  makeTray();
   try {
     installShortcuts(storage.settings);
   } catch (error) {
+    // A tray-less background app needs a working keyboard path back to its UI.
+    if (!storage.settings.showTrayIcon) {
+      storage.settings = { ...storage.settings, showTrayIcon: true };
+      await storage.saveSettings(storage.settings).catch(() => undefined);
+    }
     storage.notice = `${storage.notice ? `${storage.notice} ` : ''}${(error as Error).message} Open the app from its tray icon and change shortcuts in Settings.`;
   }
+  setTrayVisible(storage.settings.showTrayIcon);
   await window.loadURL(trustedURL);
   show();
+  applyAlwaysOnTop(storage.settings.alwaysOnTop);
 }
 
 app.on('second-instance', show);

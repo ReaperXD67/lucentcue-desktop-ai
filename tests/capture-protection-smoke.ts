@@ -31,6 +31,8 @@ const profile = await mkdtemp(join(tmpdir(), 'lucentcue-capture-fixture-'));
 const title = `LucentCue Harmless Capture Fixture ${randomUUID()}`;
 const ffmpeg = process.env.FFMPEG_PATH || 'ffmpeg';
 const includeDXGI = process.env.LUCENTCUE_CAPTURE_DXGI === '1';
+const includeVideo = process.env.LUCENTCUE_CAPTURE_VIDEO === '1';
+assert(!includeVideo || includeDXGI, 'Video checks require the covered DXGI fixture crop.');
 const palette = [
   [230, 40, 75],
   [40, 200, 90],
@@ -50,6 +52,10 @@ type Result = {
   height?: number;
   image?: string;
   error?: string;
+  video?: string;
+  videoFrames?: number;
+  videoMinFixtureFraction?: number;
+  videoMinBlackFraction?: number;
 };
 
 async function runFFmpeg(args: string[], input?: Buffer): Promise<Buffer> {
@@ -333,6 +339,63 @@ try {
           result.image = join(output, `${api}-${state}.png`);
           await writeFile(result.image, png);
         }
+        if (includeVideo && api === 'dxgi') {
+          const video = await runFFmpeg([
+            ...inputArgs,
+            '-t',
+            '1.2',
+            '-an',
+            '-c:v',
+            'libx264rgb',
+            '-crf',
+            '0',
+            '-preset',
+            'ultrafast',
+            '-pix_fmt',
+            'bgr0',
+            '-f',
+            'matroska',
+            'pipe:1',
+          ]);
+          const decoded = await runFFmpeg(
+            [
+              '-hide_banner',
+              '-loglevel',
+              'error',
+              '-i',
+              'pipe:0',
+              '-pix_fmt',
+              'rgb24',
+              '-f',
+              'rawvideo',
+              'pipe:1',
+            ],
+            video,
+          );
+          const frameBytes = result.width * result.height * 3;
+          assert.equal(decoded.length % frameBytes, 0);
+          const frames = Array.from({ length: decoded.length / frameBytes }, (_, index) =>
+            pixelStats(decoded.subarray(index * frameBytes, (index + 1) * frameBytes)),
+          );
+          assert(frames.length >= 5, 'Recording must contain at least five decoded frames.');
+          result.videoFrames = frames.length;
+          result.videoMinFixtureFraction = Math.min(
+            ...frames.map((frame) => frame.fixtureFraction),
+          );
+          result.videoMinBlackFraction = Math.min(...frames.map((frame) => frame.blackFraction));
+          assert(
+            frames.every((frame) => frame.recognizedFraction > 0.98),
+            'Unrecognized recording pixels were discarded.',
+          );
+          assert(
+            enabled
+              ? frames.every((frame) => frame.blackFraction > 0.98)
+              : frames.every((frame) => frame.everySwatch && frame.fixtureFraction > 0.8),
+            'Every decoded recording frame must match the expected protection state.',
+          );
+          result.video = join(output, `${api}-${state}.mkv`);
+          await writeFile(result.video, video);
+        }
       } catch (error) {
         result.error = error instanceof Error ? error.message.slice(0, 1000) : 'Capture failed.';
       }
@@ -364,6 +427,7 @@ try {
     source: title,
     wholeDesktopCaptured: false,
     dxgiAttempted: includeDXGI,
+    videoAttempted: includeVideo,
     dxgiCrop: region,
     observations,
     conclusions,
@@ -398,6 +462,13 @@ try {
     ),
     'No tested capture API demonstrated exclusion against valid OFF baselines.',
   );
+  if (includeVideo)
+    assert.ok(
+      observations
+        .filter((frame) => frame.api === 'dxgi')
+        .every((frame) => !frame.error && (frame.videoFrames ?? 0) >= 5 && frame.video),
+      'Every OFF/ON/restored-OFF video must pass all decoded-frame checks.',
+    );
 } finally {
   if (application) {
     const closing = application.waitForEvent('close', { timeout: 10_000 }).catch(() => undefined);

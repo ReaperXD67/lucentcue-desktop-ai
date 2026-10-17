@@ -1,6 +1,6 @@
 # Windows installation and privacy test record
 
-This record separates source/release checks, tests of an installed application, and live provider access. **0.1.1 was packaged, installed, and opened on Windows; source workflow checks and a scoped DXGI fixture experiment passed.** Target-recorder tests and live model answers remain pending.
+This record separates source/release checks, tests of an installed application, and live provider access. **0.2.0 source passed 100 automated tests with headed Chromium enabled, 21 Electron smoke checks, and native shortcut tests on Windows.** Installed 0.2.0 package checks, matching-commit CI/packages, and publication remain pending. No personal model key was supplied.
 
 ## Published 0.1.0 baseline
 
@@ -10,13 +10,13 @@ Read-only GitHub check on 17 October 2026 found:
 | --- | --- |
 | Published unsigned prerelease | [v0.1.0-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.1.0-preview.1) |
 | Native Windows/macOS/Linux package build | [39045558099 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045558099) |
-| Latest checked CI | [39046554878 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39046554878) |
+| Baseline CI | [39046554878 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39046554878) |
 | Windows installer | `LucentCue.Setup.0.1.0.exe`, 117,807,377 bytes |
 | Release asset SHA-256 | `c5f1aa33096b85990f0d601301bdcc9c11125d76824e5b9c3e1cde20d72b9727` |
 
-This baseline does not establish that a personal provider key works or that every screen recorder honors protection. [0.1.1 release notes](RELEASE_NOTES.md) describe the next preview separately; no new-version CI/package success is claimed yet.
+This baseline does not establish that a personal provider key works or that every screen recorder honors protection. [Release notes](RELEASE_NOTES.md) describe the next preview separately.
 
-## Current 0.1.1 source checks
+## 0.1.1 baseline checks
 
 | Check | Verified outcome |
 | --- | --- |
@@ -27,6 +27,8 @@ This baseline does not establish that a personal provider key works or that ever
 | Copy answer regression | Bounded trusted IPC reached a spy of the native writer; no user clipboard read or replacement |
 | Actual global-shortcut keypresses | Installed 0.1.1 hid successfully after an injected native `Alt+R`; global restore and screenshot keypress remain unverified |
 | New-version packaging and installed upgrade | Windows NSIS build passed; silent per-user upgrade exited 0; installed executable reports `0.1.1.0` and opened |
+| Cross-platform CI | [39049628563 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39049628563), commit `525e5f8` |
+| Windows/macOS/Linux native packaging | [39049629404 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39049629404), same commit |
 
 The locally built `LucentCue Setup 0.1.1.exe` is 117,809,712 bytes, SHA-256 `ec76628f2b1102c92e07cee0c76d712719e7a09823098ebd5aad9fbc3b073636`. This identifies the installed build's installer, not a future independently built CI asset.
 
@@ -45,7 +47,34 @@ These are same-fixture local stress comparisons. They are not per-key latency, l
 
 After `npm ci`, `npm run browser:install`, and `npm run build`, reproduce the current build with `node scripts/benchmark-ui.mjs dist current`. Optional positional arguments select a built-renderer directory and output label; `LUCENTCUE_BENCH_RUNS` defaults to five measured runs. The script writes `test-results/ui-benchmark-<label>.json`, uses no personal profile/keys, and checks preserved text, cancellation, copy callbacks, links, and absence of external requests/renderer errors. A before/after comparison requires two corresponding builds, not two labels for the same build.
 
-## Installed 0.1.1 current-PC results
+## 0.2.0 verification
+
+Source tests use an isolated LucentCue profile and harmless local fixtures. Native keypress tests injected actual OS key combinations while an owned local Electron fixture was foreground; they exercise global shortcuts rather than invoking registered callbacks directly. They do not replace installation checks of the distributed package.
+
+| Check | Current-version outcome |
+| --- | --- |
+| Format, typecheck, dependency audit | Passed; audit reported zero vulnerabilities |
+| Automated suite with Chromium | All 100 checks passed with headed Chromium enabled, repeated twice; headless run passed 99 with the one headed-only case skipped |
+| Electron smoke | 21 checks passed, including compact/workspace transitions, shared draft, 360 px minimum-width flow, invalid mode rejection, tray controls, explicit Quit availability, shortcut re-registration recovery, capture-protection state across mode changes, screenshots, and browser flow |
+| Companion → Settings/workspace → companion | Gear opened Settings in the full workspace; switching back retained the draft |
+| `Alt+W` hide and global restore, including tray icon off | Actual native keypresses passed hide, restore, and restore with tray icon disabled |
+| Old-default migration and custom-shortcut preservation | Automated storage regressions passed; installed upgrade check pending |
+| Screenshot UI and native `Alt+Shift+S`, preview/removal | Real OS screenshot paths passed; attachment appeared and was removed before sending |
+| Visible browser read/attach/approved fill, no submit | Local-fixture UI flow passed; input was filled and no submit occurred |
+| Covered selected browser tab, genuine background tab, minimized browser | Headed Windows browser tests passed read/fill while covered, preserved background-tab hidden state, and rejected minimized reads |
+| Browser close/reopen | Removed stale DevTools endpoint marker before fresh launch; bounded shutdown waits for owned process exit. Three reopen cycles passed without a profile-lock race. |
+| Tray icon toggle and explicit Quit | Source checks passed; launcher reopen remains an installed-package check |
+| Windows pin state | A/B reproduced floating level getter false versus `pop-up-menu` true; Windows pin now uses the latter and may appear above the taskbar |
+| External paired DXGI recording fixture, off/on/off | All six decoded frames per state passed; protected frames were 100% black; details below |
+| External DXGI recording of the built LucentCue source app in both modes | 42 decoded frames across 7 stages passed: all 18 protected frames 100% black; all 24 unprotected baseline/restored frames showed app UI |
+| External capture of installed binary, WGC, OBS, Zoom, or other target recorder | Not tested; source-app and fixture evidence do not establish this |
+| Windows package, installed upgrade, app open | Pending |
+| Matching-commit Windows/macOS/Linux CI and packages | Pending |
+| Published release packages and SHA-256 checksums | Pending |
+
+The Windows CI job now also runs `npm run test:desktop` after building, using its isolated profile and mocked completions. It does not enable the optional real screenshot/browser feature paths or replace the local native-keypress/recording experiments. The matching-commit hosted run remains pending until linked above.
+
+## Installed 0.1.1 baseline results
 
 Record the exact installed version and evidence without personal keys, prompts, browsing sessions, or other private content. Use `%LOCALAPPDATA%`/`%APPDATA%` in public paths rather than a person's Windows account name.
 
@@ -63,7 +92,7 @@ Record the exact installed version and evidence without personal keys, prompts, 
 | Optional browser setup, visible open/read/approved fill | Installed-app manual checks pending; visible source local-fixture path passed above |
 | Installed interaction responsiveness / crashes | Pending; the headless source comparison above is separate |
 
-After the successful hide keypress, Windows UI automation stopped because it could not confidently determine the foreground browser URL for its policy checks. No further native app input was issued. The workspace can be reopened manually with `Alt+R` or the tray icon. Installed screenshot-hotkey and target-recorder checks remain pending; source workflow and separate fixture results are listed independently.
+After the successful hide keypress, Windows UI automation stopped because it could not confidently determine the foreground browser URL for its policy checks. No further native app input was issued during that test. The old build used `Alt+R`; the 0.2.0 default changes to `Alt+W`. Installed screenshot-hotkey and target-recorder checks were unfinished; source workflow and separate fixture results are listed independently.
 
 ## Capture-protection test method
 
@@ -86,15 +115,30 @@ Name a capture API only when the tool/test identifies it. A generic screenshot o
 
 ## Capture observations
 
-`tests/capture-protection-smoke.ts` exercised a separate harmless Electron fixture and owned opaque backdrop on Windows. It did not control the user's other applications. FFmpeg `ddagrab` captured a 605 × 405 region strictly within that backdrop using DXGI Desktop Duplication. OFF → ON → restored OFF produced native protection flags false → true → false and the following pixels:
+### Built LucentCue app
+
+`tests/app-recording-smoke.ts` recorded the actual built LucentCue source app in an isolated empty profile with a mocked catalog, no keys/history, and zero completion requests. Native protection was changed through the real Settings IPC and checked in companion and workspace modes. An owned opaque backdrop and strict crops kept unrelated desktop content outside the recordings; no other application received input.
+
+FFmpeg 9.0 `ddagrab` used DXGI Desktop Duplication on Windows 11 with Electron 44.9.0. Seven stages recorded 1.2 seconds at 5 fps each, yielding 42 decoded frames:
+
+| State | Observed pixels |
+| --- | --- |
+| Companion/workspace unprotected and restored OFF | All 24 frames showed app UI; expected app palette covered about 96.3% of the companion crop and 97.6% of workspace; black fraction stayed below 0.02% |
+| Companion protected, workspace protected, and workspace protected after a mode transition | All 18 frames were 100% black |
+
+Every decoded frame assertion passed, native protection flags matched the requested states, and no renderer errors occurred. This validates the built source app and tested DXGI configuration; it is not an installed-binary test or a result for WGC, OBS, Zoom, cameras, or every recorder. Reproduce on a Windows desktop with FFmpeg available by running `npm run build`, then `npx tsx tests/app-recording-smoke.ts`. Local recording evidence stays in ignored `test-results/`.
+
+### Independent fixture
+
+`tests/capture-protection-smoke.ts` exercised a separate harmless Electron fixture and owned opaque backdrop on Windows. It did not control the user's other applications. FFmpeg `ddagrab` captured a 605 × 405 region strictly within that backdrop using DXGI Desktop Duplication. OFF → ON → restored OFF produced native protection flags false → true → false. The current video experiment recorded 1.2 seconds per state at 5 fps, decoded six frames per state, and asserted every frame:
 
 | Tool/API and mode | Protection off | Protection on | Restored off | Interpretation |
 | --- | --- | --- | --- | --- |
-| FFmpeg `ddagrab`, DXGI cropped display | 96.82% fixture colors | 0% fixture; 99.948% black | 96.82% fixture colors | Valid paired baseline: this tested capture path blacked out the protected fixture |
+| FFmpeg `ddagrab`, DXGI cropped display video | 96.8766% fixture colors in all 6 frames | All 6 frames 100% black | 96.8766% fixture colors in all 6 frames | Valid paired video baseline: this tested path blacked out the protected fixture throughout the short recording |
 | FFmpeg `gdigrab`, GDI window-title capture | Black | Black | Black | **Inconclusive**: neither OFF baseline showed the fixture |
 | Windows.Graphics.Capture | Not tested | Not tested | Not tested | No claim |
 | OBS/Zoom or other actual target recorder/share | Not tested | Not tested | Not tested | No claim |
 
-This is evidence for one isolated fixture, machine, Electron version, crop, and FFmpeg path. It does not establish that the installed LucentCue window, WGC, a conferencing app, every recorder, or a camera will exclude content. The local report/images are ignored evidence under `test-results/capture-protection/`, not public captures of a user's desktop. The optional harness requires an available FFmpeg executable; `LUCENTCUE_CAPTURE_DXGI=1` enables the guarded DXGI crop in addition to the GDI experiment.
+This is evidence for one isolated fixture, machine, Electron version, crop, and FFmpeg path. It does not establish that the installed LucentCue window, WGC, a conferencing app, every recorder, or a camera will exclude content. Local reports, images, and recordings are ignored evidence under `test-results/capture-protection/`, not public captures of a user's desktop. The optional harness requires an available FFmpeg executable; set `LUCENTCUE_CAPTURE_DXGI=1` and `LUCENTCUE_CAPTURE_VIDEO=1` to enable the guarded DXGI crop and video experiment in addition to GDI. Run `npx tsx tests/capture-protection-smoke.ts` on a Windows desktop session.
 
 Windows capture exclusion is best effort. Microsoft's [SetWindowDisplayAffinity documentation](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowdisplayaffinity) does not guarantee strict protection. Electron also notes that changes take effect on a later desktop composition and that macOS ScreenCaptureKit can ignore its setting. See [Electron platform limits](https://www.electronjs.org/docs/latest/api/browser-window#winsetcontentprotectionenable-macos-windows). Nothing here promises process invisibility, anonymous API usage, or undetectability.

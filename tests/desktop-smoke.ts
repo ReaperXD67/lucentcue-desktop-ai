@@ -127,7 +127,7 @@ try {
   })()`);
   await renderer.reload();
   await renderer.getByRole('textbox', { name: 'Message LucentCue' }).waitFor();
-  await renderer.getByRole('option', { name: /Free models router/ }).waitFor({ state: 'attached' });
+  await renderer.getByTitle('Free models router', { exact: true }).waitFor();
   const bridge = await renderer.evaluate(() => ({
     desktop: typeof window.desktop,
     require: typeof (globalThis as unknown as { require?: unknown }).require,
@@ -155,6 +155,48 @@ try {
   assert.deepEqual(first.conversations, []);
   checked('First run has no API keys, no saved conversations, and history off');
 
+  assert.equal(first.windowMode, 'companion');
+  assert.equal(first.settings.shortcut, 'Alt+W');
+  const companionDraft = 'Keep this draft when opening settings.';
+  await renderer.getByRole('textbox', { name: 'Message LucentCue' }).fill(companionDraft);
+  await renderer.screenshot({
+    path: join(results, 'companion.png'),
+    animations: 'disabled',
+    scale: 'css',
+  });
+  await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).click();
+  await renderer.getByRole('heading', { name: 'Make it yours' }).waitFor();
+  assert.equal((await readState()).windowMode, 'workspace');
+  await renderer.getByRole('button', { name: 'Close settings' }).click();
+  await renderer.getByRole('button', { name: 'Companion mode', exact: true }).click();
+  await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).waitFor();
+  assert.equal(
+    await renderer.getByRole('textbox', { name: 'Message LucentCue' }).inputValue(),
+    companionDraft,
+  );
+  assert.equal((await readState()).windowMode, 'companion');
+  await resize(360, 280);
+  assert.equal(
+    await renderer.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+    false,
+  );
+  await renderer.getByRole('button', { name: 'Open full workspace', exact: true }).click();
+  await renderer.getByRole('button', { name: 'Companion mode', exact: true }).waitFor();
+  checked(
+    'Companion opens settings in the full workspace, preserves its draft, and fits a 360px window',
+  );
+  const invalidMode = await renderer.evaluate(async () => {
+    try {
+      await window.desktop!.setWindowMode('hidden' as never);
+      return false;
+    } catch {
+      return true;
+    }
+  });
+  assert.equal(invalidMode, true);
+  assert.equal((await readState()).windowMode, 'workspace');
+  checked('Invalid window modes are rejected without changing the active workspace');
+
   async function resize(width: number, height: number) {
     await application!.evaluate(
       ({ BrowserWindow }, size) => {
@@ -165,7 +207,8 @@ try {
       { width, height },
     );
     await renderer!.waitForFunction(
-      (size) => innerWidth === size.width && innerHeight === size.height,
+      // Windows frame/DPI conversion can round a requested size by 1–2 CSS px.
+      (size) => Math.abs(innerWidth - size.width) <= 2 && Math.abs(innerHeight - size.height) <= 2,
       { width, height },
     );
     await renderer!.evaluate(() => document.fonts.ready);
@@ -231,6 +274,36 @@ try {
     'Settings save through real IPC, persist state, register shortcuts, and update the native window',
   );
 
+  await renderer.getByRole('checkbox', { name: 'Show tray icon', exact: true }).uncheck();
+  await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
+  await renderer.getByText('Settings saved.', { exact: true }).waitFor();
+  assert.equal((await readState()).settings.showTrayIcon, false);
+  await renderer.getByRole('button', { name: 'Quit LucentCue', exact: true }).waitFor();
+  await renderer.getByRole('checkbox', { name: 'Show tray icon', exact: true }).check();
+  await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
+  await renderer.getByText('Settings saved.', { exact: true }).waitFor();
+  assert.equal((await readState()).settings.showTrayIcon, true);
+  checked(
+    'Tray visibility can be changed with an explicit Quit action and registered recovery shortcut',
+  );
+
+  await application.evaluate(({ globalShortcut }, settings) => {
+    globalShortcut.unregister(settings.shortcut);
+    globalShortcut.unregister(settings.captureShortcut);
+  }, saved.settings);
+  await renderer.evaluate((settings) => window.desktop!.saveSettings(settings), saved.settings);
+  assert.deepEqual(
+    await application.evaluate(
+      ({ globalShortcut }, settings) => [
+        globalShortcut.isRegistered(settings.shortcut),
+        globalShortcut.isRegistered(settings.captureShortcut),
+      ],
+      saved.settings,
+    ),
+    [true, true],
+  );
+  checked('Saving unchanged shortcuts recovers bindings after a registration conflict clears');
+
   if (process.platform === 'win32') {
     assert.equal((await readState()).captureProtectionSupported, true);
     const capturePrivacy = renderer.getByRole('checkbox', {
@@ -241,6 +314,23 @@ try {
     await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
     await renderer.getByText('Settings saved.', { exact: true }).waitFor();
     assert.equal((await readState()).settings.captureProtection, true);
+    assert.equal(
+      await application.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()[0].isContentProtected(),
+      ),
+      true,
+    );
+    await renderer.getByRole('button', { name: 'Close settings' }).click();
+    await renderer.getByRole('button', { name: 'Companion mode', exact: true }).click();
+    await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).waitFor();
+    assert.equal(
+      await application.evaluate(({ BrowserWindow }) =>
+        BrowserWindow.getAllWindows()[0].isContentProtected(),
+      ),
+      true,
+    );
+    await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).click();
+    await renderer.getByRole('heading', { name: 'Make it yours' }).waitFor();
     assert.equal(
       await application.evaluate(({ BrowserWindow }) =>
         BrowserWindow.getAllWindows()[0].isContentProtected(),
@@ -258,7 +348,7 @@ try {
       false,
     );
     checked(
-      'Windows capture privacy UI enables native content protection and disables it before screenshots',
+      'Windows content protection survives both window modes and disables before screenshot tests',
     );
   }
 
@@ -327,7 +417,13 @@ try {
   await renderer.getByRole('button', { name: /^New conversation/ }).click();
   assert.equal(await composer.inputValue(), '');
   await composer.fill('Explain a useful way to organize this desktop task.');
-  await renderer.getByRole('button', { name: 'Send message', exact: true }).click();
+  await composer.press('Shift+Enter');
+  assert.equal(
+    await composer.inputValue(),
+    'Explain a useful way to organize this desktop task.\n',
+  );
+  await composer.press('Backspace');
+  await composer.press('Enter');
   await renderer.getByRole('heading', { name: 'Make it yours' }).waitFor();
   await renderer
     .getByRole('status')

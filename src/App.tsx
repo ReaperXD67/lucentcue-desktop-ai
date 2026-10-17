@@ -16,6 +16,8 @@ import {
   Leaf,
   LoaderCircle,
   MessageSquare,
+  Maximize2,
+  Minimize2,
   Minus,
   PanelRightClose,
   Pin,
@@ -40,6 +42,7 @@ import {
   type ModelInfo,
   type Provider,
   type Settings,
+  type WindowMode,
 } from '../shared/types';
 import SettingsPanel from './SettingsPanel';
 
@@ -73,6 +76,7 @@ export default function App() {
   const [copied, setCopied] = useState('');
   const [showDown, setShowDown] = useState(false);
   const [modelRetry, setModelRetry] = useState(0);
+  const [modeBusy, setModeBusy] = useState(false);
   const activeRequest = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -81,6 +85,7 @@ export default function App() {
   const activeProvider = settings.mode === 'free' ? 'openrouter' : settings.provider;
   const hasKey = Boolean(state?.keys[activeProvider]);
   const selectedModel = models.find((model) => model.id === settings.model);
+  const companion = state?.windowMode === 'companion';
 
   const load = useCallback(async () => {
     try {
@@ -99,6 +104,18 @@ export default function App() {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(
+    () =>
+      api.onWindowMode((windowMode) => {
+        setState((current) => current && { ...current, windowMode });
+        if (windowMode === 'companion') setPanel(null);
+      }),
+    [],
+  );
+  useEffect(() => {
+    if (stickToBottom.current)
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'instant' });
+  }, [companion]);
   useEffect(
     () =>
       api.onCapture((attachment) => {
@@ -198,6 +215,24 @@ export default function App() {
   async function saveSettings(next: Settings) {
     const saved = await api.saveSettings(next);
     setState((current) => current && { ...current, settings: saved });
+  }
+  async function switchWindowMode(mode: WindowMode, nextPanel: Panel = null) {
+    if (modeBusy) return;
+    setModeBusy(true);
+    try {
+      await api.setWindowMode(mode);
+      setState((current) => current && { ...current, windowMode: mode });
+      setPanel(mode === 'companion' ? null : nextPanel);
+      if (!nextPanel) composerRef.current?.focus();
+    } catch (error) {
+      setNotice(errorText(error));
+    } finally {
+      setModeBusy(false);
+    }
+  }
+  function openPanel(nextPanel: Exclude<Panel, null>) {
+    if (companion) void switchWindowMode('workspace', nextPanel);
+    else setPanel(panel === nextPanel ? null : nextPanel);
   }
   async function saveKey(provider: Provider, key: string) {
     await api.setKey(provider, key);
@@ -326,7 +361,7 @@ export default function App() {
     }
     if (!hasKey && !isPreview) {
       setNotice(`Add your ${providerNames[activeProvider]} API key in Settings to start.`);
-      setPanel('settings');
+      openPanel('settings');
       return;
     }
     const userMessage: Message = {
@@ -418,149 +453,201 @@ export default function App() {
     );
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Workspace navigation">
-        <div className="brand">
-          <div className="brand-mark">
-            <Sparkles size={21} strokeWidth={1.6} />
-          </div>
-          <span>
-            LucentCue<span className="brand-dot">.</span>
-          </span>
-        </div>
-        <button
-          className="new-chat"
-          aria-label="New conversation"
-          onClick={() => void newConversation()}
-        >
-          <Plus size={17} />
-          <span>New conversation</span>
-        </button>
-        <nav className="main-nav">
-          <button
-            aria-label="Workspace"
-            className={!panel ? 'nav-item active' : 'nav-item'}
-            onClick={() => setPanel(null)}
-          >
-            <MessageSquare size={17} />
-            <span>Workspace</span>
-          </button>
-          <button
-            aria-label="Browser assist"
-            className={panel === 'browser' ? 'nav-item active' : 'nav-item'}
-            onClick={() => setPanel(panel === 'browser' ? null : 'browser')}
-          >
-            <Globe2 size={17} />
-            <span>Browser assist</span>
-            <ArrowUpRight size={14} />
-          </button>
-        </nav>
-        <div className="history-heading">
-          <span>Conversations</span>
-          <button
-            className="icon-button"
-            aria-label="Search conversations"
-            aria-pressed={searchOpen}
-            onClick={() => setSearchOpen((value) => !value)}
-          >
-            <Search size={15} />
-          </button>
-        </div>
-        {searchOpen && (
-          <label className="history-search">
-            <span className="sr-only">Search conversations</span>
-            <input
-              autoFocus
-              placeholder="Find a conversation…"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </label>
-        )}
-        <div className="history-list">
-          {conversations
-            .filter((item) => item.title.toLowerCase().includes(search.toLowerCase()))
-            .map((item) => (
-              <button
-                className={`history-item ${activeId === item.id ? 'selected' : ''}`}
-                key={item.id}
-                onClick={() => void openConversation(item)}
-              >
-                <MessageSquare size={14} />
-                <span>{item.title}</span>
-              </button>
-            ))}
-          {!conversations.length && (
-            <p className="history-empty">
-              Your next good idea
-              <br />
-              starts here.
-            </p>
-          )}
-          {!!search &&
-            !conversations.some((item) =>
-              item.title.toLowerCase().includes(search.toLowerCase()),
-            ) && <p className="history-empty">No matching conversations.</p>}
-        </div>
-        <div className="sidebar-bottom">
-          <div className="shortcut-note">
-            <Keyboard size={17} />
-            <div>
-              <span>A little help, a shortcut away</span>
-              <kbd>{settings.shortcut}</kbd>
-              <small>Show or hide your workspace</small>
+    <div className={`app-shell ${companion ? 'companion-mode' : 'workspace-mode'}`}>
+      {!companion && (
+        <aside className="sidebar" aria-label="Workspace navigation">
+          <div className="brand">
+            <div className="brand-mark">
+              <Sparkles size={21} strokeWidth={1.6} />
             </div>
-          </div>
-          <button
-            aria-label="Settings"
-            className={`nav-item ${panel === 'settings' ? 'active' : ''}`}
-            onClick={() => setPanel(panel === 'settings' ? null : 'settings')}
-          >
-            <Settings2 size={17} />
-            <span>Settings</span>
-            <span className="version">v0.1</span>
-          </button>
-          <div className="sidebar-footer">
-            <ShieldCheck size={13} />
             <span>
-              {settings.saveHistory
-                ? 'History saved on this device'
-                : 'History stays in this session'}
+              LucentCue<span className="brand-dot">.</span>
             </span>
           </div>
-        </div>
-      </aside>
+          <button
+            className="new-chat"
+            aria-label="New conversation"
+            onClick={() => void newConversation()}
+          >
+            <Plus size={17} />
+            <span>New conversation</span>
+          </button>
+          <nav className="main-nav">
+            <button
+              aria-label="Workspace"
+              className={!panel ? 'nav-item active' : 'nav-item'}
+              onClick={() => setPanel(null)}
+            >
+              <MessageSquare size={17} />
+              <span>Workspace</span>
+            </button>
+            <button
+              aria-label="Browser assist"
+              className={panel === 'browser' ? 'nav-item active' : 'nav-item'}
+              onClick={() => setPanel(panel === 'browser' ? null : 'browser')}
+            >
+              <Globe2 size={17} />
+              <span>Browser assist</span>
+              <ArrowUpRight size={14} />
+            </button>
+          </nav>
+          <div className="history-heading">
+            <span>Conversations</span>
+            <button
+              className="icon-button"
+              aria-label="Search conversations"
+              aria-pressed={searchOpen}
+              onClick={() => setSearchOpen((value) => !value)}
+            >
+              <Search size={15} />
+            </button>
+          </div>
+          {searchOpen && (
+            <label className="history-search">
+              <span className="sr-only">Search conversations</span>
+              <input
+                autoFocus
+                placeholder="Find a conversation…"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
+          )}
+          <div className="history-list">
+            {conversations
+              .filter((item) => item.title.toLowerCase().includes(search.toLowerCase()))
+              .map((item) => (
+                <button
+                  className={`history-item ${activeId === item.id ? 'selected' : ''}`}
+                  key={item.id}
+                  onClick={() => void openConversation(item)}
+                >
+                  <MessageSquare size={14} />
+                  <span>{item.title}</span>
+                </button>
+              ))}
+            {!conversations.length && (
+              <p className="history-empty">
+                Your next good idea
+                <br />
+                starts here.
+              </p>
+            )}
+            {!!search &&
+              !conversations.some((item) =>
+                item.title.toLowerCase().includes(search.toLowerCase()),
+              ) && <p className="history-empty">No matching conversations.</p>}
+          </div>
+          <div className="sidebar-bottom">
+            <div className="shortcut-note">
+              <Keyboard size={17} />
+              <div>
+                <span>A little help, a shortcut away</span>
+                <kbd>{settings.shortcut}</kbd>
+                <small>Show or hide your workspace</small>
+              </div>
+            </div>
+            <button
+              aria-label="Settings"
+              className={`nav-item ${panel === 'settings' ? 'active' : ''}`}
+              onClick={() => setPanel(panel === 'settings' ? null : 'settings')}
+            >
+              <Settings2 size={17} />
+              <span>Settings</span>
+              <span className="version">v0.1</span>
+            </button>
+            <div className="sidebar-footer">
+              <ShieldCheck size={13} />
+              <span>
+                {settings.saveHistory
+                  ? 'History saved on this device'
+                  : 'History stays in this session'}
+              </span>
+            </div>
+          </div>
+        </aside>
+      )}
 
       <div className="workspace-shell">
         <header className="titlebar">
-          <div className="breadcrumb">
-            <span>Workspace</span>
-            <ChevronRight size={13} />
-            <strong>{messages.length ? 'Conversation' : 'New conversation'}</strong>
-          </div>
+          {companion ? (
+            <div className="companion-brand">
+              <Sparkles size={18} aria-hidden="true" />
+              <strong>LucentCue</strong>
+            </div>
+          ) : (
+            <div className="breadcrumb">
+              <span>Workspace</span>
+              <ChevronRight size={13} />
+              <strong>{messages.length ? 'Conversation' : 'New conversation'}</strong>
+            </div>
+          )}
           <div className="window-actions">
-            {isPreview && <span className="preview-label">Interface preview</span>}
-            <button
-              className={`icon-button ${settings.alwaysOnTop ? 'pressed' : ''}`}
-              aria-label="Keep window on top"
-              aria-pressed={settings.alwaysOnTop}
-              onClick={() =>
-                void saveSettings({ ...settings, alwaysOnTop: !settings.alwaysOnTop }).catch(
-                  (error) => setNotice(errorText(error)),
-                )
-              }
-            >
-              <Pin size={15} />
-            </button>
-            <span className="window-divider" />
-            <button
-              className="icon-button"
-              aria-label="Minimize window"
-              disabled={isPreview}
-              onClick={() => void api.minimize()}
-            >
-              <Minus size={17} />
-            </button>
+            {companion ? (
+              <>
+                <button
+                  className="icon-button"
+                  aria-label="New conversation"
+                  title="New conversation"
+                  onClick={() => void newConversation()}
+                >
+                  <Plus size={17} />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label="Open workspace settings"
+                  title="Open workspace settings"
+                  disabled={modeBusy}
+                  onClick={() => openPanel('settings')}
+                >
+                  <Settings2 size={17} />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label="Open full workspace"
+                  title="Open full workspace"
+                  disabled={modeBusy}
+                  onClick={() => void switchWindowMode('workspace')}
+                >
+                  <Maximize2 size={16} />
+                </button>
+              </>
+            ) : (
+              <>
+                {isPreview && <span className="preview-label">Interface preview</span>}
+                <button
+                  className="text-button companion-return"
+                  aria-label="Companion mode"
+                  title="Return to the small companion"
+                  disabled={modeBusy}
+                  onClick={() => void switchWindowMode('companion')}
+                >
+                  <Minimize2 size={15} />
+                  <span>Companion</span>
+                </button>
+                <button
+                  className={`icon-button ${settings.alwaysOnTop ? 'pressed' : ''}`}
+                  aria-label="Keep window on top"
+                  aria-pressed={settings.alwaysOnTop}
+                  onClick={() =>
+                    void saveSettings({ ...settings, alwaysOnTop: !settings.alwaysOnTop }).catch(
+                      (error) => setNotice(errorText(error)),
+                    )
+                  }
+                >
+                  <Pin size={15} />
+                </button>
+                <span className="window-divider" />
+                <button
+                  className="icon-button"
+                  aria-label="Minimize window"
+                  disabled={isPreview}
+                  onClick={() => void api.minimize()}
+                >
+                  <Minus size={17} />
+                </button>
+              </>
+            )}
             <button
               className="icon-button close-window"
               aria-label="Hide window"
@@ -571,47 +658,54 @@ export default function App() {
             </button>
           </div>
         </header>
-        <div className={`workspace-body ${panel ? 'with-panel' : ''}`}>
+        <div className={`workspace-body ${!companion && panel ? 'with-panel' : ''}`}>
           <main className="chat-workspace">
-            <div className="chat-toolbar">
-              <span className="workspace-label">
-                <span className="status-dot" /> Your workspace
-              </span>
-              <div className="toolbar-actions">
-                {messages.length > 0 && (
-                  <button
-                    className="text-button"
-                    onClick={() =>
-                      void api
-                        .exportConversation({
-                          id: activeId,
-                          title: messages[0].content.slice(0, 54),
-                          updatedAt: Date.now(),
-                          messages,
-                        })
-                        .then((saved) => {
-                          if (saved) setNotice('Conversation exported.');
-                        })
-                        .catch((error) => setNotice(errorText(error)))
-                    }
-                  >
-                    <Download size={14} />
-                    Export
-                  </button>
-                )}
-                <span className="local-label">
-                  <ShieldCheck size={13} />
-                  Local-first
+            {!companion && (
+              <div className="chat-toolbar">
+                <span className="workspace-label">
+                  <span className="status-dot" /> Your workspace
                 </span>
+                <div className="toolbar-actions">
+                  {messages.length > 0 && (
+                    <button
+                      className="text-button"
+                      onClick={() =>
+                        void api
+                          .exportConversation({
+                            id: activeId,
+                            title: messages[0].content.slice(0, 54),
+                            updatedAt: Date.now(),
+                            messages,
+                          })
+                          .then((saved) => {
+                            if (saved) setNotice('Conversation exported.');
+                          })
+                          .catch((error) => setNotice(errorText(error)))
+                      }
+                    >
+                      <Download size={14} />
+                      Export
+                    </button>
+                  )}
+                  <span className="local-label">
+                    <ShieldCheck size={13} />
+                    Local-first
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div
               className={`conversation-scroll ${!messages.length ? 'is-empty' : ''}`}
               ref={scrollRef}
               onScroll={handleScroll}
             >
-              {!messages.length ? (
+              {!messages.length && companion ? (
+                <div className="companion-welcome">
+                  <h1>A little help, right here.</h1>
+                  <p>Ask a question or attach a screenshot.</p>
+                </div>
+              ) : !messages.length ? (
                 <div className="welcome">
                   <div className="welcome-emblem">
                     <Sparkles size={32} strokeWidth={1.2} />
@@ -706,12 +800,14 @@ export default function App() {
                   <div>
                     <span className="connect-dot" />
                     <span>
-                      {isPreview
-                        ? 'You’re viewing the interface preview.'
-                        : `Connect ${providerNames[activeProvider]} to get started.`}
+                      {companion
+                        ? `Add your ${providerNames[activeProvider]} key to ask.`
+                        : isPreview
+                          ? 'You’re viewing the interface preview.'
+                          : `Connect ${providerNames[activeProvider]} to get started.`}
                     </span>
                   </div>
-                  <button onClick={() => setPanel('settings')}>
+                  <button onClick={() => openPanel('settings')} disabled={modeBusy}>
                     {isPreview ? 'View settings' : 'Add API key'}
                     <ArrowUpRight size={13} />
                   </button>
@@ -809,7 +905,8 @@ export default function App() {
                       className={`icon-button ${panel === 'browser' ? 'pressed' : ''}`}
                       title="Attach a browser page"
                       aria-label="Open browser assistance"
-                      onClick={() => setPanel(panel === 'browser' ? null : 'browser')}
+                      disabled={modeBusy}
+                      onClick={() => openPanel('browser')}
                     >
                       <Globe2 size={18} />
                     </button>
@@ -840,89 +937,110 @@ export default function App() {
                   )}
                 </div>
               </form>
-              <div className="model-bar">
-                <div className="mode-switch" aria-label="Access mode">
-                  <button
-                    className={settings.mode === 'free' ? 'selected' : ''}
-                    disabled={streaming}
-                    onClick={() => void changeMode('free')}
-                  >
-                    <Leaf size={12} />
-                    Free
-                  </button>
-                  <button
-                    className={settings.mode === 'byok' ? 'selected' : ''}
-                    disabled={streaming}
-                    onClick={() => void changeMode('byok')}
-                  >
-                    Bring your key
-                  </button>
-                </div>
-                <div className="model-controls">
-                  {settings.mode === 'byok' && (
-                    <label>
-                      <span className="sr-only">AI provider</span>
+              {!companion && (
+                <div className="model-bar">
+                  <div className="mode-switch" aria-label="Access mode">
+                    <button
+                      className={settings.mode === 'free' ? 'selected' : ''}
+                      disabled={streaming}
+                      onClick={() => void changeMode('free')}
+                    >
+                      <Leaf size={12} />
+                      Free
+                    </button>
+                    <button
+                      className={settings.mode === 'byok' ? 'selected' : ''}
+                      disabled={streaming}
+                      onClick={() => void changeMode('byok')}
+                    >
+                      Bring your key
+                    </button>
+                  </div>
+                  <div className="model-controls">
+                    {settings.mode === 'byok' && (
+                      <label>
+                        <span className="sr-only">AI provider</span>
+                        <select
+                          aria-label="AI provider"
+                          disabled={streaming}
+                          value={settings.provider}
+                          onChange={(event) => void changeProvider(event.target.value as Provider)}
+                        >
+                          {Object.entries(providerNames).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <label className="model-select">
+                      <span className="sr-only">AI model</span>
                       <select
-                        aria-label="AI provider"
-                        disabled={streaming}
-                        value={settings.provider}
-                        onChange={(event) => void changeProvider(event.target.value as Provider)}
+                        aria-label="AI model"
+                        disabled={streaming || modelsBusy}
+                        value={settings.model}
+                        onChange={(event) =>
+                          void saveSettings({ ...settings, model: event.target.value }).catch(
+                            (error) => setNotice(errorText(error)),
+                          )
+                        }
                       >
-                        {Object.entries(providerNames).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
+                        {!models.some((model) => model.id === settings.model) && (
+                          <option value={settings.model}>
+                            {modelsBusy ? 'Loading models…' : settings.model}
+                          </option>
+                        )}
+                        {models.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.name}
+                            {model.vision ? ' · vision' : ''}
                           </option>
                         ))}
                       </select>
+                      <ChevronDown size={12} />
                     </label>
-                  )}
-                  <label className="model-select">
-                    <span className="sr-only">AI model</span>
-                    <select
-                      aria-label="AI model"
-                      disabled={streaming || modelsBusy}
-                      value={settings.model}
-                      onChange={(event) =>
-                        void saveSettings({ ...settings, model: event.target.value }).catch(
-                          (error) => setNotice(errorText(error)),
-                        )
-                      }
-                    >
-                      {!models.some((model) => model.id === settings.model) && (
-                        <option value={settings.model}>
-                          {modelsBusy ? 'Loading models…' : settings.model}
-                        </option>
-                      )}
-                      {models.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.name}
-                          {model.vision ? ' · vision' : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={12} />
-                  </label>
+                  </div>
                 </div>
-              </div>
+              )}
+              {companion && (
+                <div className="companion-footer">
+                  <button
+                    className="text-button"
+                    aria-label="Open model settings"
+                    title={selectedModel?.name || settings.model}
+                    disabled={modeBusy}
+                    onClick={() => void switchWindowMode('workspace')}
+                  >
+                    {settings.mode === 'free' ? <Leaf size={12} /> : <Sparkles size={12} />}
+                    <span>{selectedModel?.name || settings.model}</span>
+                  </button>
+                  <span>
+                    <kbd>{settings.shortcut}</kbd> show / hide
+                  </span>
+                </div>
+              )}
               {modelError && (
                 <p className="catalog-error" role="status">
                   {modelError}
                   <button onClick={() => setModelRetry((count) => count + 1)}>Retry</button>
                 </p>
               )}
-              <p className="composer-footnote">
-                {attachments.length && selectedModel && !selectedModel.vision
-                  ? 'Choose a vision model to send screenshots.'
-                  : settings.mode === 'free'
-                    ? 'Free models have provider rate limits. No automatic paid fallback.'
-                    : 'Provider charges may apply to your key.'}
-                <span>
-                  <kbd>Enter</kbd> to send · <kbd>Shift + Enter</kbd> for a new line
-                </span>
-              </p>
+              {!companion && (
+                <p className="composer-footnote">
+                  {attachments.length && selectedModel && !selectedModel.vision
+                    ? 'Choose a vision model to send screenshots.'
+                    : settings.mode === 'free'
+                      ? 'Free models have provider rate limits. No automatic paid fallback.'
+                      : 'Provider charges may apply to your key.'}
+                  <span>
+                    <kbd>Enter</kbd> to send · <kbd>Shift + Enter</kbd> for a new line
+                  </span>
+                </p>
+              )}
             </div>
           </main>
-          {panel === 'settings' && (
+          {!companion && panel === 'settings' && (
             <SettingsPanel
               state={state}
               isPreview={isPreview}
@@ -932,7 +1050,7 @@ export default function App() {
               onDeleteHistory={clearHistory}
             />
           )}
-          {panel === 'browser' && (
+          {!companion && panel === 'browser' && (
             <BrowserPanel
               onClose={() => setPanel(null)}
               onAttach={(snapshot) => {
