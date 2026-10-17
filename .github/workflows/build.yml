@@ -1,0 +1,53 @@
+name: Build unsigned packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Package ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: windows-x64
+            command: dist:win
+            files: release/*.exe
+          - os: macos-latest
+            target: macos-x64-arm64
+            command: dist:mac
+            files: release/*.dmg
+          - os: ubuntu-latest
+            target: linux-x64
+            command: dist:linux
+            files: |
+              release/*.AppImage
+              release/*.deb
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build native unsigned packages
+        run: npm run ${{ matrix.command }} -- --publish never
+      - uses: actions/upload-artifact@v7
+        with:
+          name: lucentcue-${{ matrix.target }}-unsigned
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

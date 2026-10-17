@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-desktop/
+release/
+test-results/
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+.impeccable/
