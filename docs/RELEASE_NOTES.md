@@ -2,6 +2,8 @@
 
 An original, open-source desktop AI copilot for screenshots, coding, research, and visible browser assistance. This is an unsigned developer preview.
 
+Native packages were built from [cb35cd9](https://github.com/ReaperXD67/lucentcue-desktop-ai/commit/cb35cd99ef52c2955b8aaf44a67a4a7ec6cb68cd) in the verified cross-platform workflow.
+
 ## Included
 
 - OpenRouter free-model mode with fresh zero-price validation and no automatic paid fallback.

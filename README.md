@@ -103,6 +103,8 @@ npm run test:desktop
 
 Build artifacts go to `release/`. Package on the target OS for release testing. Code signing, macOS notarization, and automatic updates are not configured. Optional Chromium setup is available in the app; browser binaries are downloaded separately.
 
+The manual **Attach packages to draft preview** workflow transfers verified successful native-build artifacts and SHA-256 checksums to an existing draft prerelease. It keeps the release unpublished for maintainer review; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Release status
 
 Verified 17 October 2026: [CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045557690) and [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39045558099) pass on Windows, macOS, and Linux. Packages include Windows x64 NSIS, macOS x64/arm64 DMGs, and Linux x64 AppImage/deb. Local Windows checks pass: 78 offline tests, 4 real Chromium integration tests, and 14 Electron smoke checks, including native capture-protection toggling. The packaged Windows browser helper also passed. The dependency audit reports zero known vulnerabilities. Desktop runtime testing on macOS/Linux, code signing, notarization, and live provider completions with a real key remain pending.

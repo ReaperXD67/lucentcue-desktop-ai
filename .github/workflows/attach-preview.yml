@@ -1,0 +1,43 @@
+name: Attach packages to draft preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful manual native-package run ID from main
+        required: true
+        type: string
+      tag:
+        description: Existing draft prerelease tag, e.g. v0.1.0-preview.1
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: attach-preview-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  attach:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Verify source and attach existing native artifacts
+        run: node scripts/attach-preview.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+          PREVIEW_TAG: ${{ inputs.tag }}
