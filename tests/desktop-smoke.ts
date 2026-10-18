@@ -39,6 +39,29 @@ function checked(description: string) {
   checks.push(description);
   console.log(`PASS ${description}`);
 }
+function contrastRatio(foregroundColor: string, backgroundLayers: string[]): number {
+  const parse = (color: string) => {
+    const parts = color.match(/[\d.]+/g)?.map(Number);
+    if (!parts || parts.length < 3) throw new Error(`Unsupported computed color: ${color}`);
+    return [...parts.slice(0, 3), parts[3] ?? 1];
+  };
+  const blend = (front: number[], back: number[]) =>
+    front.slice(0, 3).map((channel, index) => channel * front[3] + back[index] * (1 - front[3]));
+  const background = backgroundLayers.reduce(
+    (back, color) => blend(parse(color), back),
+    [255, 255, 255],
+  );
+  const foreground = blend(parse(foregroundColor), background);
+  const luminance = (color: number[]) =>
+    color
+      .map((value) => {
+        const channel = value / 255;
+        return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      })
+      .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+  const colors = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+  return (colors[0] + 0.05) / (colors[1] + 0.05);
+}
 
 try {
   application = await _electron.launch({
@@ -79,7 +102,7 @@ try {
   // UI actions, streaming parser, and shortcuts run in the actual application.
   // Reload discards any catalog request that started before this override.
   await application.evaluate(`(() => {
-    globalThis.__lucentcueSmokeRequests = { catalogs: 0, completions: 0, holding: 0, aborted: 0 };
+    globalThis.__lucentcueSmokeRequests = { catalogs: 0, completions: 0, holding: 0, aborted: 0, settingsHeld: 0 };
     globalThis.__lucentcueSmokeMode = 'stream';
     globalThis.fetch = async (input, init) => {
       const url = typeof input === 'string' ? input : input.url || String(input);
@@ -89,7 +112,21 @@ try {
           id: 'openrouter/free', name: 'Free models router', context_length: 128000,
           pricing: { prompt: '0', completion: '0', image: '0', request: '0' },
           architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] }
-        }] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }, {
+          id: 'deepseek/deepseek-v4.1-flash', name: 'DeepSeek: DeepSeek V4.1 Flash', context_length: 128000,
+          pricing: { prompt: '0.000001', completion: '0.000001', image: '0', request: '0' },
+          architecture: { input_modalities: ['text', 'image'], output_modalities: ['text'] }
+        }, {
+          id: 'fixture/text-only', name: 'Fixture: Text-only model', context_length: 64000,
+          pricing: { prompt: '0.000001', completion: '0.000001', image: '0', request: '0' },
+          architecture: { input_modalities: ['text'], output_modalities: ['text'] }
+        }, ...Array.from({ length: 32 }, (_, index) => ({
+          id: 'fixture/long-model-' + index,
+          name: 'Fixture: Long model name for checking readable scrolling and constrained window layouts ' + index,
+          context_length: 64000,
+          pricing: { prompt: '0.000001', completion: '0.000001', image: '0', request: '0' },
+          architecture: { input_modalities: ['text'], output_modalities: ['text'] }
+        }))] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
       }
       if (url.includes('/chat/completions')) {
         globalThis.__lucentcueSmokeRequests.completions++;
@@ -143,7 +180,7 @@ try {
   checked('Real sandboxed preload bridge with no renderer Node.js access');
 
   const readState = () => renderer!.evaluate(() => window.desktop!.getState());
-  async function waitForMainCounter(name: 'holding' | 'aborted', minimum: number) {
+  async function waitForMainCounter(name: 'holding' | 'aborted' | 'settingsHeld', minimum: number) {
     for (let attempt = 0; attempt < 80; attempt++) {
       const counters = (await application!.evaluate(
         'globalThis.__lucentcueSmokeRequests',
@@ -662,6 +699,256 @@ try {
   await renderer.getByRole('button', { name: 'Bring your key', exact: true }).click();
   await renderer.getByRole('combobox', { name: 'AI provider', exact: true }).waitFor();
   assert.equal((await readState()).settings.mode, 'byok');
+  const modelPicker = renderer.getByRole('combobox', { name: 'AI model', exact: true });
+  const modelSearch = renderer.getByRole('combobox', { name: 'Search models', exact: true });
+  const modelList = renderer.getByRole('listbox', { name: 'Available AI models', exact: true });
+  const deepseekModel = 'deepseek/deepseek-v4.1-flash';
+  const deepseekName = 'DeepSeek: DeepSeek V4.1 Flash';
+  await modelPicker.click();
+  await modelSearch.waitFor();
+  await renderer.waitForFunction(
+    () => document.activeElement?.getAttribute('aria-label') === 'Search models',
+  );
+  assert.equal(await modelSearch.evaluate((element) => document.activeElement === element), true);
+  await modelSearch.fill('DeepSeek V4.1');
+  assert.equal(await modelList.getByRole('option').count(), 1);
+  await modelList.getByText(deepseekModel, { exact: true }).waitFor();
+  await modelList.getByText('Images', { exact: true }).waitFor();
+  await modelSearch.fill('fixture/text-only');
+  assert.equal(await modelList.getByRole('option').count(), 1);
+  await modelList.getByText('Fixture: Text-only model', { exact: true }).waitFor();
+  assert.equal(await modelList.getByText('Images', { exact: true }).count(), 0);
+  await modelSearch.fill('');
+  await renderer.getByRole('checkbox', { name: 'Images only', exact: true }).check();
+  assert.equal(await modelList.getByRole('option').count(), 2);
+  assert.equal(await modelList.getByText('fixture/text-only', { exact: true }).count(), 0);
+  await modelSearch.fill(deepseekModel);
+  await modelSearch.press('ArrowDown');
+  await modelSearch.press('Enter');
+  await modelList.waitFor({ state: 'hidden' });
+  await renderer.waitForFunction(
+    async (model) => (await window.desktop!.getState()).settings.model === model,
+    deepseekModel,
+  );
+  assert.equal(await modelPicker.evaluate((element) => document.activeElement === element), true);
+  assert.equal(
+    JSON.parse(await readFile(join(profile, 'local', 'settings.json'), 'utf8')).model,
+    deepseekModel,
+  );
+  await renderer.reload();
+  await modelPicker.getByText(deepseekName, { exact: true }).waitFor();
+  assert.equal((await readState()).settings.model, deepseekModel);
+  assert.equal(await application.evaluate('globalThis.__lucentcueSmokeRequests.completions'), 0);
+  checked(
+    'Model picker searches names and IDs, filters image support, and keyboard selection persists without sending',
+  );
+
+  await modelPicker.click();
+  assert.equal(
+    await modelList
+      .getByRole('option')
+      .filter({ hasText: deepseekModel })
+      .getAttribute('aria-selected'),
+    'true',
+  );
+  await modelSearch.fill('no-such-model-in-the-test-catalog');
+  await renderer.getByText('No models found.', { exact: true }).waitFor();
+  assert.equal(await modelList.getByRole('option').count(), 0);
+  await modelSearch.press('Escape');
+  await modelList.waitFor({ state: 'hidden' });
+  assert.equal(await modelPicker.evaluate((element) => document.activeElement === element), true);
+  assert.equal((await readState()).settings.model, deepseekModel);
+  await modelPicker.click();
+  await modelSearch.waitFor();
+  const draftBeforeDismiss = await renderer
+    .getByRole('textbox', { name: 'Message LucentCue' })
+    .inputValue();
+  await renderer
+    .getByRole('textbox', { name: 'Message LucentCue' })
+    .click({ position: { x: 12, y: 12 } });
+  await modelList.waitFor({ state: 'hidden' });
+  assert.equal(
+    await renderer
+      .getByRole('textbox', { name: 'Message LucentCue' })
+      .evaluate((element) => document.activeElement === element),
+    true,
+  );
+  assert.equal(
+    await renderer.getByRole('textbox', { name: 'Message LucentCue' }).inputValue(),
+    draftBeforeDismiss,
+  );
+  checked('Empty model search and Escape or outside dismissal preserve the selection and draft');
+
+  await resize(900, 620);
+  for (const palette of ['dark', 'light'] as const) {
+    if ((await readState()).settings.theme !== palette) {
+      await renderer
+        .getByRole('button', { name: `Switch to ${palette} mode`, exact: true })
+        .click();
+      await renderer.waitForFunction(
+        (value) => document.documentElement.dataset.theme === value,
+        palette,
+      );
+    }
+    await modelPicker.click();
+    await modelSearch.fill('');
+    await renderer.getByRole('checkbox', { name: 'Images only', exact: true }).uncheck();
+    assert.equal(await modelList.getByRole('option').count(), 35);
+    const popupBounds = await modelSearch.evaluate((element) => {
+      const popup = element.closest<HTMLElement>('[popover]');
+      if (!popup) throw new Error('Model search must be in its visible popover.');
+      const bounds = popup.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        top: bounds.top,
+        bottom: bounds.bottom,
+        width: innerWidth,
+        height: innerHeight,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    assert.ok(popupBounds.left >= 0 && popupBounds.right <= popupBounds.width + 1);
+    assert.ok(popupBounds.top >= 0 && popupBounds.bottom <= popupBounds.height + 1);
+    assert.equal(popupBounds.overflow, false);
+    for (const label of [deepseekName, deepseekModel]) {
+      const colors = await modelList
+        .getByRole('option')
+        .filter({ hasText: deepseekModel })
+        .getByText(label, { exact: true })
+        .evaluate((element) => {
+          const layers: string[] = [];
+          for (let node: Element | null = element; node; node = node.parentElement)
+            layers.unshift(getComputedStyle(node).backgroundColor);
+          return { foreground: getComputedStyle(element).color, layers };
+        });
+      const contrast = contrastRatio(colors.foreground, colors.layers);
+      assert.ok(
+        contrast >= 4.5,
+        `${palette} model label needs 4.5:1 contrast; got ${contrast}: ${label}`,
+      );
+    }
+    await renderer.screenshot({
+      path: join(results, `model-picker-${palette}.png`),
+      animations: 'disabled',
+      scale: 'css',
+    });
+    for (let index = 0; index < 24; index++) await modelSearch.press('ArrowDown');
+    await renderer.waitForFunction(() => {
+      const search = document.querySelector('[aria-label="Search models"]');
+      const active = document.getElementById(search?.getAttribute('aria-activedescendant') ?? '');
+      const list = document.getElementById(search?.getAttribute('aria-controls') ?? '');
+      if (!active || !list) return false;
+      const option = active.getBoundingClientRect();
+      const bounds = list.getBoundingClientRect();
+      return (
+        list.scrollTop > 0 && option.top >= bounds.top - 1 && option.bottom <= bounds.bottom + 1
+      );
+    });
+    const activeBounds = await modelSearch.evaluate((element) => {
+      const active = document.getElementById(element.getAttribute('aria-activedescendant') ?? '');
+      const list = document.getElementById(element.getAttribute('aria-controls') ?? '');
+      if (!active || !list) throw new Error('Keyboard navigation needs an active model option.');
+      const activeBounds = active.getBoundingClientRect();
+      const listBounds = list.getBoundingClientRect();
+      return {
+        top: activeBounds.top,
+        bottom: activeBounds.bottom,
+        listTop: listBounds.top,
+        listBottom: listBounds.bottom,
+        scroll: list.scrollTop,
+      };
+    });
+    assert.ok(activeBounds.scroll > 0, 'Keyboard navigation must scroll long model catalogs.');
+    assert.ok(activeBounds.top >= activeBounds.listTop - 1);
+    assert.ok(activeBounds.bottom <= activeBounds.listBottom + 1);
+    await modelSearch.press('Escape');
+    await modelList.waitFor({ state: 'hidden' });
+  }
+  await renderer.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+  await renderer.waitForFunction(
+    async () => (await window.desktop!.getState()).settings.theme === 'dark',
+  );
+  await resize(1280, 900);
+  checked(
+    'Dark and light model menus remain readable, keyboard-scrollable, and inside a 900 × 620 viewport',
+  );
+
+  // Hold exactly one atomic settings rename in this already verified throwaway
+  // profile. A slow provider save must never leave the previous catalog usable.
+  await application.evaluate(`(() => {
+    const fs = process.getBuiltinModule('node:fs/promises');
+    const path = process.getBuiltinModule('node:path');
+    const target = path.join(process.env.LUCENTCUE_USER_DATA, 'local', 'settings.json');
+    const originalRename = fs.rename;
+    globalThis.__lucentcueSmokeReleaseSettingsSave = () => {};
+    globalThis.__lucentcueSmokeRestoreSettingsRename = () => {
+      fs.rename = originalRename;
+      globalThis.__lucentcueSmokeReleaseSettingsSave();
+    };
+    fs.rename = async (from, to) => {
+      if (String(to) === target) {
+        fs.rename = originalRename;
+        globalThis.__lucentcueSmokeRequests.settingsHeld++;
+        await new Promise(resolve => { globalThis.__lucentcueSmokeReleaseSettingsSave = resolve; });
+      }
+      return originalRename(from, to);
+    };
+  })()`);
+  const providerPicker = renderer.getByRole('combobox', { name: 'AI provider', exact: true });
+  try {
+    await providerPicker.selectOption('gemini');
+    await waitForMainCounter('settingsHeld', 1);
+    assert.equal((await readState()).settings.provider, 'openrouter');
+    assert.equal(await modelPicker.isDisabled(), true);
+    assert.equal(await providerPicker.isDisabled(), true);
+    assert.equal(
+      await renderer.getByRole('button', { name: 'Free', exact: true }).isDisabled(),
+      true,
+    );
+    assert.equal(await modelList.isVisible(), false);
+    await application.evaluate('globalThis.__lucentcueSmokeReleaseSettingsSave()');
+    await renderer.waitForFunction(
+      async () => (await window.desktop!.getState()).settings.provider === 'gemini',
+    );
+    await renderer
+      .getByRole('status')
+      .filter({
+        hasText: 'Save your provider API key to load the models available to your account.',
+      })
+      .waitFor();
+    await modelPicker.click();
+    await renderer.getByText('No models available.', { exact: true }).waitFor();
+    assert.equal(await modelList.getByRole('option').count(), 0);
+    assert.equal(await modelList.getByText(deepseekModel, { exact: true }).count(), 0);
+    assert.equal((await readState()).settings.model, 'gemini-2.5-flash');
+    await modelSearch.press('Escape');
+  } finally {
+    await application.evaluate('globalThis.__lucentcueSmokeRestoreSettingsRename()');
+  }
+  await providerPicker.selectOption('openrouter');
+  await modelPicker.getByText('Free models router', { exact: true }).waitFor();
+  await modelPicker.click();
+  await modelSearch.fill(deepseekModel);
+  await modelSearch.press('ArrowDown');
+  await modelSearch.press('Enter');
+  await renderer.waitForFunction(
+    async (model) => (await window.desktop!.getState()).settings.model === model,
+    deepseekModel,
+  );
+  await modelPicker.click();
+  await modelSearch.fill(deepseekModel);
+  await modelList.getByText(deepseekName, { exact: true }).waitFor();
+  await renderer.screenshot({
+    path: join(results, 'model-picker-deepseek.png'),
+    animations: 'disabled',
+    scale: 'css',
+  });
+  await modelSearch.press('Escape');
+  checked(
+    'Slow provider saves disable the previous model catalog; a different provider cannot select its stale options',
+  );
+
   await renderer.getByRole('button', { name: 'Free', exact: true }).click();
   await renderer.waitForFunction(
     async () => (await window.desktop!.getState()).settings.mode === 'free',
@@ -769,9 +1056,13 @@ try {
   await composer.fill('Hold this request until I stop.');
   await renderer.getByRole('button', { name: 'Send message', exact: true }).click();
   await waitForMainCounter('holding', 1);
+  assert.equal(await modelPicker.isDisabled(), true);
+  assert.equal(await modelSearch.isVisible(), false);
+  assert.equal(await modelList.isVisible(), false);
   await renderer.getByRole('button', { name: 'Stop generating' }).click();
   await renderer.getByRole('button', { name: 'Stop generating' }).waitFor({ state: 'detached' });
   await waitForMainCounter('aborted', 1);
+  assert.equal(await modelPicker.isEnabled(), true);
   assert.equal(await renderer.locator('.message.assistant').count(), 0);
   assert.equal(await renderer.getByText('Waiting for the model…', { exact: true }).count(), 0);
   checked(

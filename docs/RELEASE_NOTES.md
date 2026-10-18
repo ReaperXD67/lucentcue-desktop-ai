@@ -1,5 +1,13 @@
 # LucentCue preview notes
 
+## 0.2.3 — readable searchable model picker, source preview
+
+Replaces the Windows model dropdown whose light text could appear on a white popup with a themed searchable picker. Names and exact IDs are readable in Dark and Light; image and free labels, **Images only**, selected-state feedback, empty results, and keyboard navigation make large catalogs easier to use. The popup stays within the workspace and avoids clipping above the composer. Provider and Settings dropdown options also receive explicit theme colours.
+
+Model selection saves the exact catalog identifier and clears an earlier selection error after a successful save. Provider/mode transitions block the previous catalog until their new catalog or error is available. Ordinary model saves retain keyboard focus. Changing models does not submit a question or make a paid completion request. The existing Free defaults and provider/pricing policies are unchanged.
+
+Formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks** pass. The isolated-profile desktop suite uses mocked completions and verifies search/filtering, persisted keyboard selection without sending, Escape/outside dismissal, selected feedback, Dark/Light label contrast and popup bounds, scrolling to the active option, and blocking stale catalog selection during a delayed provider save. Dark, Light, and filtered-search screenshots were visually inspected. CI, native packaging, and installed 0.2.3 verification are pending; 0.2.2 remains the published and installed preview, with its release assets unchanged.
+
 ## 0.2.2 — direct appearance controls and screenshot delivery
 
 Published as [v0.2.2-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.2-preview.1) from source `d936e31f1ddba76f91931fb118e72ff630915a2e`, with all five unsigned native packages and `SHA256SUMS.txt`. The official Windows package installed and passed the checks below on 18 October 2026; trusted signing remains pending.

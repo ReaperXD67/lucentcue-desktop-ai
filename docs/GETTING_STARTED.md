@@ -1,6 +1,6 @@
 # Get started with LucentCue on Windows
 
-Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.2 preview includes a compact companion, a full workspace, and direct appearance controls; source, package, and installation results are recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied during testing, so live model answers have not been verified.
+Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published and installed 0.2.2 preview includes a compact companion, a full workspace, and direct appearance controls. The searchable model picker is in 0.2.3 source; its packages and installed verification are pending. Source passes 96 default automated tests and 30 isolated Windows desktop checks. [WINDOWS_TESTING.md](WINDOWS_TESTING.md) separates these results. No personal key was supplied during testing, so live model answers have not been verified.
 
 ## Install or upgrade
 
@@ -53,10 +53,16 @@ For a budget starting point, choose **DeepSeek V4.1 Flash** for image questions 
 Rates were checked on **18 October 2026**. DeepSeek's starting rates are from its cheapest listed provider; other providers charge more. LucentCue does not pin a provider, sort routes by price, or impose a paid price cap, so those starting rates are not a guaranteed bill or guaranteed saving over Luna. Image tokens, conversation length, reasoning, and caching also affect costs. Recheck the linked provider prices before use.
 
 1. Save your **OpenRouter** key using the connection steps above. For an initial trial, optionally set a **$1 key limit** in [OpenRouter's key settings](https://openrouter.ai/settings/keys); LucentCue does not configure that limit.
-2. In the full workspace below the composer, select **Bring your key**, choose **AI provider → OpenRouter**, then select **DeepSeek V4.1 Flash · vision** with the exact model ID above. Mode, provider, and model choices save immediately.
+2. In the full workspace below the composer, select **Bring your key**, choose **AI provider → OpenRouter**, then select **DeepSeek V4.1 Flash** with the exact model ID above. In 0.2.3, open **AI model**, search `deepseek/deepseek-v4.1-flash`, and select the result marked **Images**. Mode, provider, and model choices save immediately.
 3. Capture a screenshot, review it, type your question, and send. **Bring your key** here uses your OpenRouter key and credits; it does not require a separate DeepSeek or OpenAI key. Switch back to **Free** whenever you want the zero-price catalog.
 
 Use **New conversation** for each unrelated image: follow-ups resend the active conversation, including earlier screenshots. For shorter answers, ask “Give the answer first, followed by a brief explanation. Say if any text is unreadable.” You can append this preference under **Settings → Workspace → Advanced instructions** while preserving the existing safety instructions. A concise prompt is a preference, not a billing cap: LucentCue has no hard output-token, reasoning-effort, or paid-spend controls.
+
+The 0.2.3 model picker shows readable model names and IDs in Dark and Light. **Images only** filters image-capable models; **Free** labels describe zero-price eligibility in the current catalog. Search by name or ID, browse with ↑/↓, select with Enter, or close with Escape. Clicking outside closes the picker. Model changes do not send your question. The picker is unavailable during generation or a provider/catalog change, so models from a previous provider cannot be selected accidentally. Older 0.2.2 uses the native model dropdown.
+
+![LucentCue model picker searching the exact DeepSeek V4.1 Flash ID, with the selected result and Images label](images/model-picker.png)
+
+App-only screenshot from the isolated 0.2.3 test profile; the shortcut shown is a temporary test binding, not the default Alt+W. No personal key or live model answer was used.
 
 ## Shortcuts and everyday controls
 

@@ -1,5 +1,11 @@
 # Windows installation and privacy test record
 
+## 0.2.3 model-picker source checks
+
+Source replaces the unreadable native model dropdown with a searchable themed popup, name/ID search, image-only filtering, exact-ID saves, and keyboard selection/dismissal. A provider/mode transition blocks old catalog choices, including while the settings save is pending. Formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks** pass. CI, native packaging, and installed 0.2.3 validation are pending; the published and installed 0.2.2 record below remains separate.
+
+The isolated-profile desktop suite adds model-picker coverage for name/ID search, image-only filtering, persisted Enter selection without a completion request, selected feedback, empty results, Escape/outside dismissal with the draft retained, Dark/Light text contrast of at least 4.5:1, popup bounds at 900 × 620, and automatic scrolling to the keyboard-active option. A delayed provider save inside the temporary test profile verifies that provider/mode controls and the previous catalog stay unavailable while saving, then that old models are absent from the new catalog. Dark, Light, and filtered-search screenshots were visually inspected. These checks use mocked catalogs and completions, with optional real screenshot/browser paths disabled; they do not establish live paid-model quality or installed-package behavior.
+
 This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.2 Windows preview is installed; direct Dark/Light switching, 85% companion opacity, Alt+W hide/restore with the tray off, and the configured screenshot shortcut's preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, personal OpenRouter key setup, and live answers remain pending. External recording privacy and browser runtime were not retested on the installed 0.2.2 package.
 
 ## 0.2.2: direct appearance controls and shortcut attachment visibility

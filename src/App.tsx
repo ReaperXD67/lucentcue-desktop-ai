@@ -12,7 +12,6 @@ import {
   ArrowUp,
   ArrowUpRight,
   Check,
-  ChevronDown,
   ChevronRight,
   CircleHelp,
   Code2,
@@ -55,6 +54,7 @@ import {
   type WindowMode,
 } from '../shared/types';
 import SettingsPanel from './SettingsPanel';
+import ModelPicker from './ModelPicker';
 
 const uid = () => crypto.randomUUID();
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -76,7 +76,9 @@ export default function App() {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [pageContext, setPageContext] = useState<BrowserSnapshot>();
   const [models, setModels] = useState<ModelInfo[]>([]);
+  const [modelsFor, setModelsFor] = useState('');
   const [modelsBusy, setModelsBusy] = useState(false);
+  const [catalogChangeBusy, setCatalogChangeBusy] = useState(false);
   const [modelError, setModelError] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [notice, setNotice] = useState('');
@@ -99,8 +101,12 @@ export default function App() {
   const stickToBottom = useRef(true);
   const settings = state?.settings ?? DEFAULT_SETTINGS;
   const activeProvider = settings.mode === 'free' ? 'openrouter' : settings.provider;
+  const catalogKey = `${settings.mode}:${activeProvider}`;
   const hasKey = Boolean(state?.keys[activeProvider]);
-  const selectedModel = models.find((model) => model.id === settings.model);
+  const catalogMatches = modelsFor === catalogKey;
+  const selectedModel = catalogMatches
+    ? models.find((model) => model.id === settings.model)
+    : undefined;
   const companion = state?.windowMode === 'companion';
 
   useEffect(() => {
@@ -203,11 +209,15 @@ export default function App() {
     api
       .getModels(settings.mode, activeProvider)
       .then((result) => {
-        if (!stale) setModels(result);
+        if (!stale) {
+          setModels(result);
+          setModelsFor(catalogKey);
+        }
       })
       .catch((error) => {
         if (!stale) {
           setModels([]);
+          setModelsFor(catalogKey);
           setModelError(errorText(error));
         }
       })
@@ -220,6 +230,7 @@ export default function App() {
   }, [
     settings.mode,
     activeProvider,
+    catalogKey,
     state?.keys.openrouter,
     state?.keys.openai,
     state?.keys.gemini,
@@ -304,7 +315,8 @@ export default function App() {
     setModelRetry((count) => count + 1);
   }
   async function changeMode(mode: 'free' | 'byok') {
-    if (streaming || mode === settings.mode) return;
+    if (streaming || pendingSettings.current > 0 || mode === settings.mode) return;
+    setCatalogChangeBusy(true);
     const provider = settings.provider;
     const model =
       mode === 'free'
@@ -318,9 +330,13 @@ export default function App() {
       await saveSettings({ mode, model });
     } catch (error) {
       setNotice(errorText(error));
+    } finally {
+      setCatalogChangeBusy(false);
     }
   }
   async function changeProvider(provider: Provider) {
+    if (streaming || pendingSettings.current > 0 || provider === settings.provider) return;
+    setCatalogChangeBusy(true);
     const model =
       provider === 'openai'
         ? 'gpt-4.1-mini'
@@ -331,6 +347,8 @@ export default function App() {
       await saveSettings({ provider, model });
     } catch (error) {
       setNotice(errorText(error));
+    } finally {
+      setCatalogChangeBusy(false);
     }
   }
   async function stop() {
@@ -1016,7 +1034,7 @@ export default function App() {
                   <div className="mode-switch" aria-label="Access mode">
                     <button
                       className={settings.mode === 'free' ? 'selected' : ''}
-                      disabled={streaming}
+                      disabled={streaming || settingsBusy}
                       onClick={() => void changeMode('free')}
                     >
                       <Leaf size={12} />
@@ -1024,7 +1042,7 @@ export default function App() {
                     </button>
                     <button
                       className={settings.mode === 'byok' ? 'selected' : ''}
-                      disabled={streaming}
+                      disabled={streaming || settingsBusy}
                       onClick={() => void changeMode('byok')}
                     >
                       Bring your key
@@ -1036,7 +1054,7 @@ export default function App() {
                         <span className="sr-only">AI provider</span>
                         <select
                           aria-label="AI provider"
-                          disabled={streaming}
+                          disabled={streaming || settingsBusy}
                           value={settings.provider}
                           onChange={(event) => void changeProvider(event.target.value as Provider)}
                         >
@@ -1048,32 +1066,17 @@ export default function App() {
                         </select>
                       </label>
                     )}
-                    <label className="model-select">
-                      <span className="sr-only">AI model</span>
-                      <select
-                        aria-label="AI model"
-                        disabled={streaming || modelsBusy}
-                        value={settings.model}
-                        onChange={(event) =>
-                          void saveSettings({ model: event.target.value }).catch((error) =>
-                            setNotice(errorText(error)),
-                          )
-                        }
-                      >
-                        {!models.some((model) => model.id === settings.model) && (
-                          <option value={settings.model}>
-                            {modelsBusy ? 'Loading models…' : settings.model}
-                          </option>
-                        )}
-                        {models.map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name}
-                            {model.vision ? ' · vision' : ''}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown size={12} />
-                    </label>
+                    <ModelPicker
+                      models={catalogMatches ? models : []}
+                      value={settings.model}
+                      loading={modelsBusy || catalogChangeBusy || !catalogMatches}
+                      disabled={streaming}
+                      onSelect={(model) =>
+                        void saveSettings({ model })
+                          .then(() => setNotice(''))
+                          .catch((error) => setNotice(errorText(error)))
+                      }
+                    />
                   </div>
                 </div>
               )}

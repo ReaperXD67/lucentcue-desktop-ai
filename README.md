@@ -4,7 +4,7 @@
 
 An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Keep a small companion one shortcut away, open the full workspace when you need it, and choose exactly what you send to your own OpenRouter, OpenAI, or Gemini account.
 
-**0.2.2 preview · MIT · Electron + React + TypeScript.** The [published preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.2-preview.1) has Windows, macOS, and Linux packages with SHA-256 checksums. The official Windows 0.2.2 installer upgraded the tested PC successfully; the installed companion passed theme, opacity, shortcut, and screenshot-preview checks. A desktop shortcut is available. Packages remain unsigned, and SignPath approval is pending. See [release status](#release-status), [signing application and setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
+**0.2.3 source preview · MIT · Electron + React + TypeScript.** Source adds a searchable, readable model picker with image filtering and exact model IDs. The [published 0.2.2 preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.2-preview.1) has Windows, macOS, and Linux packages with SHA-256 checksums; the new picker is not in those packages yet. Packages remain unsigned, and SignPath approval is pending. See [release status](#release-status), [signing application and setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
 
 For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md). [Windows testing](docs/WINDOWS_TESTING.md) records actual installation results separately from capture/privacy checks and live model access.
 
@@ -17,6 +17,7 @@ For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md)
 - Shares the active conversation, draft, and attachments between companion and workspace; streams Markdown answers with a Stop button.
 - Offers a **Free** mode restricted to currently verified zero-price OpenRouter models, with no automatic paid fallback.
 - Connects your own OpenRouter, OpenAI, and Gemini keys through Settings.
+- Finds models by name or exact ID in a themed picker, with an **Images only** filter, clear image/free labels, and keyboard navigation.
 - Captures a display from the UI or a configurable shortcut and attaches it directly to the composer for preview/removal before sending it to a vision model. Focus waits until React reveals the composer, including when the three-image limit rejects another capture.
 - Opens a visible Chromium browser, reads page context for review, and fills a selected text field with text you approve. You submit in the browser.
 - Provides configurable show/hide and screenshot shortcuts, optional always-on-top, an optional tray icon, and Markdown export.
@@ -57,7 +58,7 @@ npm start
 
 1. Select the companion's **Settings** button to open the full workspace. In **Connections**, choose a provider, paste its API key, and select **Save key**.
 2. Choose **Free** for OpenRouter's zero-price catalog, or **Bring your key** to select OpenRouter, OpenAI, or Gemini and the models available to your account.
-3. Select a model and send a question. Choose a model marked **vision** when attaching a screenshot.
+3. Select a model and send a question. In 0.2.3, open **AI model**, search a name or exact ID, and turn on **Images only** for screenshot questions. Arrow keys browse, Enter selects, and Escape closes without changing the model.
 
 There are no live model completions without a valid key. Keys are entered locally; do not put them in source files, `.env` files committed to Git, screenshots, or issue reports. Never embed a developer's shared key in a release.
 
@@ -122,6 +123,8 @@ No release currently carries a LucentCue publisher signature. The owner reported
 The manual **Attach packages to draft preview** workflow transfers verified successful native-build artifacts and SHA-256 checksums to an existing draft prerelease. It keeps the release unpublished for maintainer review; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Release status
+
+The **0.2.3 source** passes formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks**. The added model-picker checks cover searchable names/IDs, image filtering, persisted keyboard selection without sending, dismissal, Dark/Light contrast and popup bounds, scrolling to the active option, and blocking old catalogs during provider changes. The desktop suite uses an isolated profile and mocked completions. CI, native packages, and installed 0.2.3 verification are pending.
 
 0.2.2 ships the instant dark/light toggle, separate appearance save/preview controls, normalized shortcut-save fix, and composer visibility/focus fixes for shortcut screenshots. Formatting, type checks, **96 default automated tests**, the production build, and **26 local Windows desktop checks** pass. [CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39123365729), [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39123368696), and [asset/checksum verification](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39123563024) passed at `d936e31`, including all 26 hosted Windows desktop checks. All five unsigned packages and checksums are [published](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.2-preview.1).
 
