@@ -1,10 +1,28 @@
 # Windows installation and privacy test record
 
-## 0.2.3 model-picker source checks
+## 0.2.3 model-picker source, release, and installation checks
 
-Source replaces the unreadable native model dropdown with a searchable themed popup, name/ID search, image-only filtering, exact-ID saves, and keyboard selection/dismissal. A provider/mode transition blocks old catalog choices, including while the settings save is pending. Formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks** pass. CI, native packaging, and installed 0.2.3 validation are pending; the published and installed 0.2.2 record below remains separate.
+0.2.3 replaces the unreadable native model dropdown with a searchable themed popup, name/ID search, image-only filtering, exact-ID saves, and keyboard selection/dismissal. A provider/mode transition blocks old catalog choices, including while the settings save is pending. Formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks** passed. The release is published; its Windows installer was blocked before startup on the tested PC, which remains on installed 0.2.2.
 
 The isolated-profile desktop suite adds model-picker coverage for name/ID search, image-only filtering, persisted Enter selection without a completion request, selected feedback, empty results, Escape/outside dismissal with the draft retained, Dark/Light text contrast of at least 4.5:1, popup bounds at 900 × 620, and automatic scrolling to the keyboard-active option. A delayed provider save inside the temporary test profile verifies that provider/mode controls and the previous catalog stay unavailable while saving, then that old models are absent from the new catalog. Dark, Light, and filtered-search screenshots were visually inspected. These checks use mocked catalogs and completions, with optional real screenshot/browser paths disabled; they do not establish live paid-model quality or installed-package behavior.
+
+| Check | Observed result |
+| --- | --- |
+| Published preview | [v0.2.3-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.3-preview.1), source `76ef0a4f1fce29525fd6b8fd518a0cdd11d45f41` |
+| Cross-platform CI | [39132719890 — passed](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39132719890) on Windows/macOS/Linux, including all 30 hosted Windows desktop checks |
+| Matching-source native packages | [39132722198 — passed](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39132722198), all three platforms |
+| Release assets and checksums | [39132934335 — passed](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39132934335), all five packages plus manifest |
+| Official Windows installer | `LucentCue.Setup.0.2.3.exe`, 117,818,663 bytes; Authenticode `NotSigned` |
+| Installer SHA-256 | `84d819449ae541933daac9926c178ae645f30be194dac34f95dbafd9b2d2aae2`; matches downloaded manifest and GitHub asset digest |
+| Normal `/S` installation attempt | Refused before process startup: **“An Application Control policy has blocked this file.”** No installer exit code was available |
+| Read-only policy evidence | Code Integrity events 3077/3033 at 19:18 on 18 October 2026 confirm enterprise signing requirements |
+| Installed app after refusal | Still product version `0.2.2.0`; reopened normally with its native model dropdown. Installed 0.2.3 picker behavior is unverified |
+| Model selected in existing installed 0.2.2 | Bring your key → OpenRouter → **DeepSeek: DeepSeek V4.1 Flash · vision**, visibly confirmed in the model control after selection; no key or Send action |
+| macOS/Linux installed runtime and live model answers | Unverified; no personal key or paid/free live completion was used |
+
+No security policy, trust store, file metadata, or published filename was changed, and no bypass was attempted. SignPath approval and trusted signing or administrator-approved deployment remain pending. The checksum verifies file identity, not permission to run under device policy.
+
+The existing 0.2.2 app was left visible in the full workspace with Dark restored and DeepSeek selected; the original unsent draft was manually restored and visibly verified, with no Send action. This was manual restoration, not automatic recovery across a restart.
 
 This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.2 Windows preview is installed; direct Dark/Light switching, 85% companion opacity, Alt+W hide/restore with the tray off, and the configured screenshot shortcut's preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, personal OpenRouter key setup, and live answers remain pending. External recording privacy and browser runtime were not retested on the installed 0.2.2 package.
 
