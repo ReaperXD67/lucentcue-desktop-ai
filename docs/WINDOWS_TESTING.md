@@ -1,12 +1,12 @@
 # Windows installation and privacy test record
 
-This record separates source/release checks, tests of an installed application, and live provider access. **0.2.0 is published after successful source tests, cross-platform CI, native packaging, and asset verification.** Windows Application Control blocked the downloaded CI installer on the tested PC before it started, so 0.1.1 remains installed and installed 0.2.0 behavior is unverified. No personal model key was supplied.
+This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.1 Windows preview is now installed; native Alt+W hide/restore and Alt+Shift+S screenshot preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, personal OpenRouter key setup, and live answers remain pending. External recording privacy was not retested on the installed package.
 
 ## 0.2.2 source: shortcut attachment visibility
 
 [CI passed on all three platforms](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39118092268) at `7cde857`, including 96 default automated tests and **22 Windows Electron desktop checks**. The new regression injects a known harmless 1 × 1 PNG through the main-process capture-delivery event in an isolated profile. At a 900 × 720 workspace, it first verifies that Settings/Browser hides the composer, then checks that capture closes either panel, renders the preview, focuses the visible text box, preserves existing draft/attachments, and does not increment mocked completion requests. It does not capture the user's desktop, clipboard, or a real model response.
 
-The fix and actual SignPath application field guide are pushed in source. The existing 0.2.1 release assets are unchanged and do not contain this fix. No newer package was installed, no signing approval was obtained, and the current PC remains on 0.1.1. On 18 October 2026, the owner reported successful SignPath application submission. This report is separate from a verified receipt or the Foundation's eligibility decision.
+The fix and actual SignPath application field guide are pushed in source. The existing 0.2.1 release assets are unchanged and do not contain this fix; the installed PC is now on that 0.2.1 package. No signing approval was obtained. On 18 October 2026, the owner reported successful SignPath application submission. This report is separate from a verified receipt or the Foundation's eligibility decision.
 
 ## 0.2.1 appearance and signing preparation
 
@@ -14,9 +14,27 @@ The source adds Dark, Light, and Follow system themes, persisted companion opaci
 
 Hosted Windows desktop smoke checks cover saving Light and System settings, simulated system-color changes, Dark persistence after renderer reload, companion native opacity near 0.85, workspace recovery to 1, and resetting the preference. The native suite uses a temporary profile and mocked completions. A follow-up harness change launches the project directory, matching normal app startup, and asserts the reported version against package.json. Exact CI and packaging results are linked in [preview notes](RELEASE_NOTES.md).
 
-Read-only Windows Code Integrity logs show events **3077 and 3033** for the downloaded 0.2.0 installer, reporting enterprise signing requirements. The installer did not run. No trust store or security policy was changed, and a newly built local executable was not used to work around that refusal. The PC's installed app remains **0.1.1**; 0.2.1 installation, installed `Alt+W`, and installed opacity behavior remain unverified.
+Read-only Windows Code Integrity logs show events **3077 and 3033** for the downloaded 0.2.0 installer, reporting enterprise signing requirements. That installer did not run. The later official 0.2.1 installer was accepted through normal installation. No trust store, security policy, file metadata, or published filename was changed, and a newly built local executable was not used to work around the earlier refusal. No cause for the differing policy outcome is asserted.
 
-The [signing guide](SIGNING.md) contains an owner-reviewed application draft, not an accepted subscription. Its read-only verifier rejected the unsigned 0.2.0 installer and mixed 0.1.1 installed payload on PowerShell 5.1 and 7, including missing-file, duplicate-input, and report-overwrite cases. No successful signed-release fixture is available. Trusted signing enrollment, complete payload integration, and actual installation are pending. Existing 0.2.0 recording results below were not rerun for 0.2.1.
+The [signing guide](SIGNING.md) records an owner-reported submitted application, not an accepted subscription. Its read-only verifier previously rejected the unsigned 0.2.0 installer and mixed 0.1.1 installed payload on PowerShell 5.1 and 7, including missing-file, duplicate-input, and report-overwrite cases. No successful signed-release fixture is available. Trusted signing enrollment and complete payload integration remain pending. Existing 0.2.0 recording results below were not rerun for installed 0.2.1.
+
+### Installed 0.2.1 checks — 18 October 2026
+
+| Check | Observed result |
+| --- | --- |
+| Official Windows installer | `LucentCue.Setup.0.2.1.exe`, 117,815,808 bytes |
+| Installer SHA-256 | `243889d851e00f4fad18eed48a493ac075bf0a6f1414d418dc9e65cfb4d979d3`; matches release manifest and GitHub asset digest |
+| Authenticode | `NotSigned`; installation success does not establish a trusted signature |
+| Normal per-user upgrade | Official installer completed with exit code 0; installed product version `0.2.1.0`, file version `0.2.1` |
+| Actual installed launch | Opened the dark 480 × 380 compact companion at `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe` |
+| Desktop shortcut | `LucentCue.lnk` exists on the user's desktop and targets the installed executable |
+| Actual global `Alt+W` hide/restore | Passed: native keypresses from an owned Calculator window hid LucentCue and restored the same companion window |
+| Installed `Alt+Shift+S` attachment preview/removal | Passed: native keypress from Calculator captured a screenshot, restored the companion, showed the attachment preview, and removal through the UI cleared it; no Send action or model request |
+| Companion Settings gear | Opened the dark 1240 × 820 full workspace with version 0.2.1 in its footer |
+| Personal OpenRouter key and live free-model answer | Not configured/tested; Settings has OpenRouter selected and reports no saved key; owner key entry remains pending |
+| Installed opacity, browser assistance, and external recording privacy | Not tested; source evidence below remains separate |
+
+The native shortcut tests used a fresh, owned Calculator window as the foreground target and closed it afterwards. No personal key, history contents, or screenshot image was included in public evidence, and no captured image was sent to a provider. The 0.2.2 source-only fix that reveals shortcut attachments beneath overlapping Settings/Browser panels is not in this installed 0.2.1 package. The release assets remain unchanged.
 
 ## Published 0.1.0 baseline
 
@@ -85,18 +103,18 @@ Source tests use an isolated LucentCue profile and harmless local fixtures. Nati
 | External DXGI recording of the built LucentCue source app in both modes | 42 decoded frames across 7 stages passed: all 18 protected frames 100% black; all 24 unprotected baseline/restored frames showed app UI |
 | External capture of installed binary, WGC, OBS, Zoom, or other target recorder | Not tested; source-app and fixture evidence do not establish this |
 | Windows published installer | `LucentCue.Setup.0.2.0.exe`, 117,814,323 bytes; downloaded file matched the published SHA-256 below |
-| Installed 0.2.0 upgrade / launch | Blocked before installer startup: “An Application Control policy has blocked this file.” Existing 0.1.1 remains installed; no installed 0.2.0 runtime pass claimed |
+| Installed 0.2.0 upgrade / launch | Blocked before installer startup: “An Application Control policy has blocked this file.” The PC remained on 0.1.1 at that time and later upgraded directly to 0.2.1; no installed 0.2.0 runtime pass claimed |
 | Windows/macOS/Linux CI | [39057212565 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057212565), source `7a6ec0b`; Windows logs confirm 91 offline tests passed, 9 optional browser tests skipped, and 19 default real Electron checks |
 | Matching-commit Windows/macOS/Linux native packages | [39057213652 — successful](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057213652); Windows x64, macOS x64/arm64 DMG, Linux x64 AppImage/deb |
 | Published release packages and SHA-256 checksums | [v0.2.0-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1): five native packages plus `SHA256SUMS.txt`, matching source `7a6ec0b`; [attachment workflow 39057430853 passed](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39057430853) and GitHub asset digests verified |
 
-The published Windows CI installer's SHA-256 is `31cdfd87f10b722f3efc14f78b836f6a6f1da469bca25c5f023865bca059e707`. A correct hash establishes file identity, not permission to run under Windows policy. Installation on the blocked device requires a build signed by a certificate trusted by its policy or administrator-approved deployment. No unblocking, policy/security-setting changes, or rebuild intended to evade that policy were performed.
+The published Windows 0.2.0 CI installer's SHA-256 is `31cdfd87f10b722f3efc14f78b836f6a6f1da469bca25c5f023865bca059e707`. A correct hash establishes file identity, not permission to run under Windows policy. The later official 0.2.1 package installed successfully, as recorded above. No unblocking, policy/security-setting changes, or rebuild intended to evade policy were performed.
 
 The Windows CI job passed `npm run test:desktop` after building, using its isolated profile and mocked completions. Its 19 default checks do not enable the two optional real screenshot/browser feature paths included in the 21 local checks, or replace the local native-keypress/recording experiments.
 
 ## Installed 0.1.1 baseline results
 
-Record the exact installed version and evidence without personal keys, prompts, browsing sessions, or other private content. Use `%LOCALAPPDATA%`/`%APPDATA%` in public paths rather than a person's Windows account name.
+These are historical checks of the earlier 0.1.1 installation, which used `Alt+R`; the current installed 0.2.1 checks above use `Alt+W`. Preserve exact-version evidence without personal keys, prompts, browsing sessions, or other private content. Use `%LOCALAPPDATA%`/`%APPDATA%` in public paths rather than a person's Windows account name.
 
 | Check | Observed result |
 | --- | --- |

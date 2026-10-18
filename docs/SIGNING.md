@@ -1,6 +1,6 @@
 # Code signing policy
 
-**Status: application submitted; approval pending; not signed.** On 18 October 2026, the owner reported successful submission of the SignPath application. No approval, active signing configuration, or certificate has been confirmed. The public 0.2.1 and earlier 0.2.0 previews contain unsigned packages. Windows Application Control refused the checksum-verified 0.2.0 installer on the tested PC; the existing 0.1.1 installation remains. A valid signature must also satisfy that device's policy. Signing alone cannot promise installation on every managed PC.
+**Status: application submitted; approval pending; not signed.** On 18 October 2026, the owner reported successful submission of the SignPath application. No approval, active signing configuration, or certificate has been confirmed. The public 0.2.1 and earlier 0.2.0 previews contain unsigned packages. The official checksum-verified 0.2.1 installer has now installed successfully on the tested PC and the dark companion opened; this does not establish signing approval or a trusted publisher signature. Windows had refused the earlier 0.2.0 installer. No security policy, trust store, or file metadata was changed. A valid signature must also satisfy a device's policy; signing alone cannot promise installation on every managed PC.
 
 ## Free Windows route
 
@@ -71,7 +71,7 @@ Unknown credentials, pending approval, and the untested NSIS integration prevent
 
 Download the newly signed Windows installer and its matching checksum file from the project's release page. Verify signatures with the script below, then use **Quit LucentCue** in the existing app or tray menu and run the verified installer into the same installation location. If Application Control still refuses it, stop and obtain an administrator-approved deployment; do not change Windows security settings to work around the refusal.
 
-Open **Start → LucentCue** or the desktop shortcut. A successfully installed 0.2.x upgrade starts in the small companion; **Alt+W** shows/hides it, **Alt+Shift+S** captures a display for review in the composer, and the companion's **Settings** button opens the full workspace. The currently installed 0.1.1 still uses **Alt+R** until upgraded. Screenshots are attached for review; they are sent only when you submit a message, and capture is not guaranteed to be undetectable. See [Getting started](GETTING_STARTED.md) for provider keys, themes, and the recording-protection limits.
+Open **Start → LucentCue** or the desktop shortcut. The tested PC now has the unsigned 0.2.1 preview, which opens the small dark companion. Actual installed **Alt+W** hide/restore and **Alt+Shift+S** screenshot capture, preview, and removal passed without sending a question. The companion's **Settings** button opened the full workspace, where OpenRouter is selected and personal key entry remains pending. Screenshots are attached for review; they are sent only when you submit a message, and capture is not guaranteed to be undetectable. See [Getting started](GETTING_STARTED.md) for provider keys, themes, and the recording-protection limits.
 
 To remove the installed app, use **Windows Settings → Apps → Installed apps → LucentCue → Uninstall**. Local app data may remain; export any conversations you need before uninstalling or changing versions.
 

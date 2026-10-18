@@ -8,7 +8,7 @@ The [SignPath guide](SIGNING.md) now records the actual application fields, publ
 
 ## 0.2.1 — appearance and signing preparation
 
-Published as [v0.2.1-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1), with all five unsigned native packages and `SHA256SUMS.txt`. Trusted signing and installation on the tested PC remain pending.
+Published as [v0.2.1-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1), with all five unsigned native packages and `SHA256SUMS.txt`. The official Windows package installed successfully on the tested PC on 18 October 2026; trusted signing remains pending.
 
 - Dark by default, with Light and Follow system themes across chat, Settings, Markdown, and browser panels.
 - Persisted 85–100% whole-companion opacity on Windows/macOS. The full workspace stays opaque; Linux and browser previews keep solid windows.
@@ -19,7 +19,9 @@ All **105 automated tests passed with real headed Chromium enabled**. [CI](https
 
 [Native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117090507) and [asset verification](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117292327) passed at source commit `b177ef7`. The Windows installer is 117,815,808 bytes, SHA-256 `243889d851e00f4fad18eed48a493ac075bf0a6f1414d418dc9e65cfb4d979d3`.
 
-The published 0.2.0 assets remain unchanged. Windows Code Integrity events 3077 and 3033 confirm that the downloaded 0.2.0 installer failed this device's enterprise signing requirements; this is not an installer crash. The installed app remains 0.1.1, and the unsigned 0.2.1 installer was not used to retry the block. Security settings and trust stores were not changed. The 0.2.0 recording experiments below were not repeated for 0.2.1.
+The unchanged Windows 0.2.1 installer matched both `SHA256SUMS.txt` and GitHub's asset digest, completed normal per-user installation with exit code 0, and produced an installed executable reporting `0.2.1.0`. The actual installed app opened its dark 480 × 380 companion, with a desktop shortcut targeting that executable. Native **Alt+W** keypresses hid and restored it from another owned application. Native **Alt+Shift+S** attached a real screenshot, restored the companion, and displayed its preview; removing that attachment succeeded, and no question was sent. The Settings gear opened the 1240 × 820 workspace displaying version 0.2.1. Personal OpenRouter key setup and live answers remain pending. The 0.2.2 screenshot-panel fix is not included in this installed package.
+
+The published 0.2.0 assets remain unchanged. Windows Code Integrity events 3077 and 3033 confirm that the earlier downloaded 0.2.0 installer failed this device's enterprise signing requirements; it never started. The later 0.2.1 installer was accepted without changing security settings, trust stores, file metadata, or its published filename. No reason for this differing policy outcome is claimed. The 0.2.0 recording experiments below were not repeated for the installed 0.2.1 package.
 
 ## 0.2.0 — published preview
 
@@ -47,7 +49,7 @@ The [verified attachment workflow](https://github.com/ReaperXD67/lucentcue-deskt
 
 ## Windows installation status
 
-On the tested PC, Windows reported **“An Application Control policy has blocked this file.”** The 0.2.0 installer did not start and the existing 0.1.1 installation remains. Installing on that device requires a build signed by a certificate trusted by its policy, or administrator-approved deployment. No security policy was changed or bypassed. Installed 0.2.0 runtime behavior remains unverified; the new companion and `Alt+W` shortcut were verified in the isolated source app.
+Windows reported **“An Application Control policy has blocked this file.”** for the 0.2.0 installer, which never started. Installed 0.2.0 runtime behavior remains unverified; its companion and `Alt+W` tests used the isolated source app. The later official 0.2.1 installer succeeded as recorded above. No security policy was changed or bypassed, and no publisher signature has been obtained.
 
 ## Existing performance comparison
 

@@ -6,7 +6,9 @@ Use the desktop application for real answers, screenshots, and browser assistanc
 
 Download the Windows installer and `SHA256SUMS.txt` from the [0.2.1 preview release](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1). The installer is unsigned. On a device whose policy permits installation, open LucentCue from the Start menu afterwards. Installed users do not need Node.js, npm, or a source checkout.
 
-On the tested PC, Windows reported **“An Application Control policy has blocked this file.”** The downloaded 0.2.0 CI installer matched the published checksum, but did not start; 0.1.1 remains installed. Its former show/hide default is still `Alt+R`, and the new companion/`Alt+W` behavior is not installed there yet. The unsigned 0.2.1 installer was not used to retry that refusal. The next step for that device is a build signed by a certificate trusted by its policy, or deployment approved by its administrator. No policy or security settings were changed during testing.
+On 18 October 2026, the official checksum-verified 0.2.1 Windows installer completed with exit code 0 on the tested PC. The installed executable reports `0.2.1.0`, opens the dark compact companion, and has a **LucentCue** desktop shortcut. Open that shortcut or **Start → LucentCue**. Actual installed **Alt+W** hide/restore and **Alt+Shift+S** screenshot attachment preview/removal passed; no question was sent. Detailed results are recorded in [Windows testing](WINDOWS_TESTING.md).
+
+Windows had refused the earlier 0.2.0 installer with **“An Application Control policy has blocked this file.”** The later 0.2.1 package was accepted without changing security policy, trust stores, file metadata, or its published filename. It remains unsigned; this outcome does not guarantee acceptance on other devices. If a device refuses an installer, obtain a build signed by a certificate trusted by its policy or administrator-approved deployment.
 
 The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. For an upgrade, use **Quit LucentCue** in the app or tray menu first, then run the newer official installer and choose the same installation location. There is no automatic updater. If local history matters to you, export the conversations you want to keep before changing versions.
 
@@ -16,9 +18,9 @@ LucentCue starts as a small companion for questions and answers. Select its **Se
 
 ### Appearance in 0.2.1
 
-Open **Settings → Appearance** and choose **Dark**, **Light**, or **Follow system**, then select **Save settings**. Dark is the default, including when upgrading older settings. Windows/macOS builds allow **Companion opacity** from 85–100%; this fades the entire small window, including its text. The full workspace always stays solid. Linux and browser previews do not support this opacity control. These changes are in the 0.2.1 preview and are not present in the earlier 0.2.0 or the tested PC's installed 0.1.1.
+Open **Settings → Appearance** and choose **Dark**, **Light**, or **Follow system**, then select **Save settings**. Dark is the default, including when upgrading older settings. Windows/macOS builds allow **Companion opacity** from 85–100%; this fades the entire small window, including its text. The full workspace always stays solid. Linux and browser previews do not support this opacity control. These controls are included in the installed 0.2.1 preview; native opacity adjustment on this installed copy remains unverified.
 
-For free trusted Windows signing, the maintainer must complete the [SignPath application and pipeline setup](SIGNING.md). The draft is ready; approval and a signed installer remain pending. A successful signature check and installation on this PC are required before calling the upgrade complete.
+For free trusted Windows signing, the owner reports having submitted the [SignPath application](SIGNING.md); approval, pipeline setup, and a signed installer remain pending. The successful unsigned 0.2.1 installation is separate from that signing work.
 
 ## Connect your personal OpenRouter key
 
