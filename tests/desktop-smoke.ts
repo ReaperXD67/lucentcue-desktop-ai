@@ -11,6 +11,11 @@ import { _electron, type ElectronApplication, type Page } from 'playwright';
 import { createServer } from 'node:http';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const packageVersion = (
+  JSON.parse(await readFile(join(project, 'package.json'), 'utf8')) as {
+    version: string;
+  }
+).version;
 const main = join(project, 'dist-desktop', 'main.cjs');
 const results = join(project, 'test-results');
 await Promise.all([access(main), access(join(project, 'dist', 'index.html'))]).catch(() => {
@@ -38,7 +43,7 @@ function checked(description: string) {
 try {
   application = await _electron.launch({
     executablePath: electronExecutable as unknown as string,
-    args: [main],
+    args: [project],
     cwd: project,
     env: environment,
     chromiumSandbox: true,
@@ -159,7 +164,7 @@ try {
   assert.equal(first.settings.shortcut, 'Alt+W');
   assert.equal(first.settings.theme, 'dark');
   assert.equal(first.settings.companionOpacity, 1);
-  assert.ok(first.version);
+  assert.equal(first.version, packageVersion);
   await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
   const companionDraft = 'Keep this draft when opening settings.';
   await renderer.getByRole('textbox', { name: 'Message LucentCue' }).fill(companionDraft);
