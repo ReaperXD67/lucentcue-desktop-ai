@@ -1,6 +1,6 @@
 # Research and provenance
 
-Checked 17 October 2026. These findings guide an original implementation; they are not claims that every planned feature has shipped. See the main README for current capabilities and validation.
+Initial research checked 17 October 2026; capture-privacy sources rechecked 18 October 2026. These findings guide an original implementation; they are not claims that every planned feature has shipped. See the main README for current capabilities and validation.
 
 ## Upstream and installer
 
@@ -34,6 +34,12 @@ Users can supply their own provider keys. A future developer-sponsored free serv
 Keep claims precise. Windows exposes capture exclusion through [SetWindowDisplayAffinity](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowdisplayaffinity), but Microsoft explicitly provides no strict protection guarantee. Capture behavior depends on the OS and capture method. A normal desktop process remains discoverable by the operating system and security tools. Do not market LucentCue as process-invisible, universally undetectable, or guaranteed hidden from every recording tool.
 
 LucentCue now exposes optional capture protection through [Electron's API](https://www.electronjs.org/docs/latest/api/browser-window#winsetcontentprotectionenable-macos-windows) on Windows/macOS; it is off by default and unsupported on Linux. Electron documents that macOS apps using ScreenCaptureKit can ignore the protection. Successful API calls are not evidence that every capture product excludes the window.
+
+### Pluely's inspectable capture mechanism
+
+At public commit `dc35e936e36b7fe2b03119df268cb1b02d35cf5b`, Pluely's [configuration](https://github.com/iamsrikanthnani/pluely/blob/dc35e936e36b7fe2b03119df268cb1b02d35cf5b/src-tauri/tauri.conf.json#L26) enables `contentProtected` for its main window, and its [dashboard builder](https://github.com/iamsrikanthnani/pluely/blob/dc35e936e36b7fe2b03119df268cb1b02d35cf5b/src-tauri/src/window.rs#L149) also enables content protection. Its [lockfile](https://github.com/iamsrikanthnani/pluely/blob/dc35e936e36b7fe2b03119df268cb1b02d35cf5b/src-tauri/Cargo.lock) pins Tao 0.34.2; that dependency's [Windows implementation](https://github.com/tauri-apps/tao/blob/tao-v0.34.2/src/platform_impl/windows/window.rs#L1003) calls `SetWindowDisplayAffinity` with `WDA_EXCLUDEFROMCAPTURE`. This is the same Windows capture-affinity mechanism class exposed by Electron, not evidence of a special process-hiding method. Pluely's [taskbar/Dock controls](https://github.com/iamsrikanthnani/pluely/blob/dc35e936e36b7fe2b03119df268cb1b02d35cf5b/src-tauri/src/shortcuts.rs#L475) are separate normal window/activation settings.
+
+This comparison is limited to inspectable public code: that configuration reports version 0.1.9, while the [same commit's README](https://github.com/iamsrikanthnani/pluely/blob/dc35e936e36b7fe2b03119df268cb1b02d35cf5b/README.md) says v1 is closed source. It does not prove the supplied 1.1.0 binary's complete internals or actual results in every recorder. No upstream implementation was copied. [Capture privacy](CAPTURE_PRIVACY.md) separates this code evidence from the installed app's state and external capture observations.
 
 ## Brand search
 

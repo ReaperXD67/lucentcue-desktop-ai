@@ -1,6 +1,6 @@
 # Get started with LucentCue on Windows
 
-Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.3 preview adds the searchable model picker and passes cross-platform CI, including 30 Windows desktop checks. Windows Application Control blocked its installer on the tested PC, so that PC remains on 0.2.2 with the native model dropdown. [WINDOWS_TESTING.md](WINDOWS_TESTING.md) separates source, package, and installation results. No personal key was supplied during testing, so live model answers have not been verified.
+Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.3 preview adds the searchable model picker and passes cross-platform CI, including 30 Windows desktop checks. Windows Application Control blocked its installer on the tested PC, so that PC remains on 0.2.2 with the native model dropdown. A configured OpenRouter key and DeepSeek V4.1 Flash passed one harmless live text test; image answers and the Scaler full-screen sharing path remain unverified. [WINDOWS_TESTING.md](WINDOWS_TESTING.md) separates source, package, installation, and provider results.
 
 ## Install or upgrade
 
@@ -45,7 +45,7 @@ Free access is limited by [OpenRouter's current quotas](https://openrouter.ai/do
 
 ### Paid OpenRouter for screenshot questions
 
-For a budget starting point, choose **DeepSeek V4.1 Flash** for image questions and text answers. DeepSeek documents its native [image understanding](https://api-docs.deepseek.com/guides/vision/). **GPT-6 Luna** is an alternative if you prefer an OpenAI model. Neither recommendation has been validated with live paid completions in LucentCue; quality depends on the question and image readability.
+For a budget starting point, choose **DeepSeek V4.1 Flash** for image questions and text answers. DeepSeek documents its native [image understanding](https://api-docs.deepseek.com/guides/vision/). Its OpenRouter connection passed a harmless text-only test in the installed app; image-question quality remains unverified. **GPT-6 Luna** is an untested alternative if you prefer an OpenAI model. Quality depends on the question and image readability.
 
 | Use | Exact OpenRouter model | Listed input / output per million tokens |
 | --- | --- | --- |
@@ -62,7 +62,7 @@ Use **New conversation** for each unrelated image: follow-ups resend the active 
 
 The 0.2.3 model picker shows readable model names and IDs in Dark and Light. **Images only** filters image-capable models; **Free** labels describe zero-price eligibility in the current catalog. Search by name or ID, browse with ↑/↓, select with Enter, or close with Escape. Clicking outside closes the picker. Model changes do not send your question. The picker is unavailable during generation or a provider/catalog change, so models from a previous provider cannot be selected accidentally. Older 0.2.2 uses the native model dropdown.
 
-On the tested PC, **Bring your key → OpenRouter → DeepSeek: DeepSeek V4.1 Flash · vision** was selected in the existing 0.2.2 app and confirmed visibly in its model control. No key was supplied or question sent; this confirms UI selection, not a live answer or model quality.
+On 18 October 2026, the existing installed 0.2.2 app showed a configured OpenRouter key and **Bring your key → OpenRouter → DeepSeek: DeepSeek V4.1 Flash · vision**. The harmless text-only request “Reply with exactly OK.” returned “OK”. The key was not read or exposed, and no image or page attachment was sent. This verifies the text connection, not screenshot-answer quality.
 
 ![LucentCue model picker searching the exact DeepSeek V4.1 Flash ID, with the selected result and Images label](images/model-picker.png)
 
@@ -80,6 +80,8 @@ App-only screenshot from the isolated 0.2.3 test profile; the shortcut shown is 
 
 Change the two global shortcuts in **Settings → Workspace**, then select **Save settings**. Use a modifier and key, such as `Control+Shift+Space`. If another app owns the combination, choose another; failed changes restore the previous bindings. When upgrading, the old default `Alt+R` becomes `Alt+W`; custom bindings are kept. New conversation, Search conversations, Export, and Stop generating are UI buttons without dedicated app shortcuts.
 
+The tested PC's current user preferences are Light, 100% opacity, `Alt+W` show/hide, `Alt+Shift+S` capture, tray icon on, and history off. Earlier Dark/85%/custom `Alt+S` checks in the test record are historical preferences, not the current setup.
+
 The titlebar **X** hides the window; **−** minimizes it. Click the tray icon to show/hide it, or use the tray menu's **Open companion**, **Open workspace**, **Take screenshot**, and **Quit LucentCue**. The pin button or **Keep window on top** setting controls topmost behavior. On Windows, pinning uses a level above the taskbar because the default floating level could immediately lose native topmost status on the tested system.
 
 Turn **Settings → Workspace → Show tray icon** off and select **Save settings** if you want less notification-area clutter. `Alt+W` hides the window; it does not quit the running app or remove its tray icon by itself. Keep your configured show/hide shortcut available, or launch LucentCue from Start to reopen it. **Quit LucentCue** in the app exits even when the tray icon is off. This setting does not conceal the app from Task Manager, process lists, or operating-system monitoring.
@@ -96,6 +98,8 @@ In **Browser assist**, select **Set up assistant browser** once to download opti
 
 History and capture protection start **off**. **Save history on this device** stores recent conversation text locally without encryption; turning it off and saving removes saved history. **Delete saved history** has a second confirmation. Provider keys use OS-backed encryption when available; otherwise the app shows a notice and retains keys only for the session.
 
-**Exclude window from screen capture** requests best-effort OS protection on Windows/macOS. Save the setting and test your actual capture setup with harmless content. Linux does not support it, and macOS ScreenCaptureKit can ignore it. It does not hide LucentCue from Task Manager, people looking at the screen, cameras, or every recording method. [Windows testing](WINDOWS_TESTING.md) distinguishes API state from observed capture results.
+To request capture privacy yourself, open **Settings**, scroll to the **Workspace section**, check **Exclude window from screen capture**, and select **Save settings**. The feature is already available in installed 0.2.2; no 0.2.3 upgrade is needed. The setting starts off and an unsaved checkbox is not an enabled protection request. It is currently off on the tested installed app; a read-only native check returned display affinity `0x0`. Enabling it and observing the Scaler app's full-screen stream have not been confirmed.
+
+Capture protection requests best-effort OS behavior on Windows/macOS. Linux does not support it, and macOS ScreenCaptureKit can ignore it. It does not hide LucentCue from Task Manager, people looking at the screen, cameras, or every recording method. A screenshot taken by LucentCue briefly hides its own window, so that screenshot cannot prove external recording privacy. See [capture privacy](CAPTURE_PRIVACY.md) for the mechanism, platform limits, and a permitted exact-path check; [Windows testing](WINDOWS_TESTING.md) separates observed results.
 
 Your key authenticates an account; local encryption does not make provider usage anonymous. Sent prompts, screenshots, and attached page text go to the provider. OpenRouter says prompt/response retention is opt-in but request metadata is stored; underlying providers have their own policies. Review [OpenRouter privacy settings](https://openrouter.ai/settings/privacy), [data collection](https://openrouter.ai/docs/guides/privacy/data-collection), and [provider policies](https://openrouter.ai/docs/guides/privacy/provider-logging) before sending sensitive material.

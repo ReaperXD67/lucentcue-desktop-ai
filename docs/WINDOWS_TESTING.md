@@ -1,5 +1,15 @@
 # Windows installation and privacy test record
 
+## Current installed connection and capture state — 18 October 2026
+
+The actual installed executable remains **0.2.2.0**. Its UI shows a configured OpenRouter key and **DeepSeek V4.1 Flash · vision** under Bring your key. One harmless live text request, “Reply with exactly OK.”, returned “OK”. No key was read or exposed, and no screenshot, image, or page attachment was sent. This confirms text access; vision-answer quality remains unverified.
+
+Current user preferences are **Light, 100% opacity, Alt+W show/hide, Alt+Shift+S capture, tray on, and history off**. Earlier Dark/85%/custom Alt+S/tray-off results below record previous checks, not the current preferences.
+
+The installed capture checkbox is **off**. The final read-only `GetWindowDisplayAffinity` check at **21:53:35 IST on 18 October 2026** succeeded on the verified installed 0.2.2.0 app's visible native window with `0x0` (`WDA_NONE`); visibility was true. That establishes the current unprotected state, not successful exclusion. The owner was asked to enable **Exclude window from screen capture** and **Save settings** manually; completion is not confirmed. No Scaler app full-screen stream or recipient view has been tested. See [capture privacy](CAPTURE_PRIVACY.md) for supported behavior and exact-path limits.
+
+A memory-only Windows.Graphics.Capture probe of that exact installed window produced one complete **160 × 100 RGB frame (48,000 bytes)** with protection off: black fraction **0.0**, channel standard deviation **81.2614**. The owning process/window remained stable, visible, and at native affinity `0x0` before and after capture. FFmpeg was intentionally stopped after the complete frame (actual exit `-1`, not normal exit `0`); this was not a timeout. No image was persisted or uploaded. This is a valid **unprotected exact-window baseline only**; installed protection-on behavior and the Scaler full-display stream remain unverified.
+
 ## 0.2.3 model-picker source, release, and installation checks
 
 0.2.3 replaces the unreadable native model dropdown with a searchable themed popup, name/ID search, image-only filtering, exact-ID saves, and keyboard selection/dismissal. A provider/mode transition blocks old catalog choices, including while the settings save is pending. Formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks** passed. The release is published; its Windows installer was blocked before startup on the tested PC, which remains on installed 0.2.2.
@@ -17,14 +27,14 @@ The isolated-profile desktop suite adds model-picker coverage for name/ID search
 | Normal `/S` installation attempt | Refused before process startup: **“An Application Control policy has blocked this file.”** No installer exit code was available |
 | Read-only policy evidence | Code Integrity events 3077/3033 at 19:18 on 18 October 2026 confirm enterprise signing requirements |
 | Installed app after refusal | Still product version `0.2.2.0`; reopened normally with its native model dropdown. Installed 0.2.3 picker behavior is unverified |
-| Model selected in existing installed 0.2.2 | Bring your key → OpenRouter → **DeepSeek: DeepSeek V4.1 Flash · vision**, visibly confirmed in the model control after selection; no key or Send action |
-| macOS/Linux installed runtime and live model answers | Unverified; no personal key or paid/free live completion was used |
+| Model-selection check before later key setup | Bring your key → OpenRouter → **DeepSeek: DeepSeek V4.1 Flash · vision**, visibly confirmed in the model control; this selection-only check used no key or Send action |
+| macOS/Linux installed runtime | Unverified; the later installed Windows text connection check is recorded above |
 
 No security policy, trust store, file metadata, or published filename was changed, and no bypass was attempted. SignPath approval and trusted signing or administrator-approved deployment remain pending. The checksum verifies file identity, not permission to run under device policy.
 
-The existing 0.2.2 app was left visible in the full workspace with Dark restored and DeepSeek selected; the original unsent draft was manually restored and visibly verified, with no Send action. This was manual restoration, not automatic recovery across a restart.
+At the end of that earlier model-selection check, the existing 0.2.2 app was left visible in the full workspace with Dark restored and DeepSeek selected; the original unsent draft was manually restored and visibly verified, with no Send action. This was manual restoration, not automatic recovery across a restart. The later current user preferences are recorded above.
 
-This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.2 Windows preview is installed; direct Dark/Light switching, 85% companion opacity, Alt+W hide/restore with the tray off, and the configured screenshot shortcut's preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, personal OpenRouter key setup, and live answers remain pending. External recording privacy and browser runtime were not retested on the installed 0.2.2 package.
+This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.2 Windows preview is installed; its earlier direct Dark/Light switching, 85% companion opacity, Alt+W hide/restore with the tray off, and configured screenshot shortcut's preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, installed capture exclusion, image answers, and browser runtime remain unverified. The current text-connection pass does not establish those outcomes.
 
 ## 0.2.2: direct appearance controls and shortcut attachment visibility
 
@@ -56,8 +66,8 @@ No signing approval was obtained. On 18 October 2026, the owner reported success
 | Existing preferences after upgrade | `Alt+W`, custom `Alt+S` capture binding, and tray icon off were retained |
 | Actual global `Alt+W`, tray off | Native keypresses from an owned Calculator window hid and restored the same installed companion window |
 | Actual custom `Alt+S` screenshot | Native keypress captured and attached a real screenshot; its preview appeared, removal succeeded, the draft remained intact, and no Send/model request occurred |
-| Final app preferences | Dark, companion opacity 85%, tray icon off |
-| Live model answers | Not tested; no personal provider key supplied |
+| Preferences at the end of this earlier appearance check | Dark, companion opacity 85%, tray icon off; later current preferences are listed above |
+| Live model answers during this earlier appearance check | Not tested then; the later text-only connection pass is recorded above |
 | Installed browser runtime and external recording privacy | Not retested for 0.2.2; older source evidence is separate |
 
 The owned Calculator window was closed after testing. Preferences survived the upgrade; an in-memory unsent draft was manually restored through the UI after the normal Quit/install/relaunch sequence, then preserved during theme, mode, and screenshot checks. This does not claim automatic draft recovery across application restarts. No personal draft text, key, or captured screenshot is included in public evidence, and no captured image was sent to a provider.
@@ -208,7 +218,26 @@ Name a capture API only when the tool/test identifies it. A generic screenshot o
 
 ## Capture observations
 
-### Built LucentCue app
+### Current 0.2.3 source: lifecycle video and paired display stills
+
+The expanded `tests/app-recording-smoke.ts` harness passed its final run at **21:53:25 IST on 18 October 2026** (report timestamp `2026-10-18T16:23:25.989Z`). It ran the actual built 0.2.3 source app in an isolated empty profile on Windows `10.0.26200`, Electron 44.9.0, and FFmpeg 9.0. It used Light theme and opacity 1, a fetch mock installed before app startup, no configured keys/history, and zero provider completions. Native flags before and after each video capture and internal renderer paint were checked separately from external pixels. Owned opaque backgrounds and strict 600 × 477 display crops kept unrelated desktop content outside the evidence.
+
+Nine DXGI `ddagrab` video stages produced **54 decoded frames**: all **24 unprotected/restored frames** showed recognizable app UI; all **30 protected frames** showed the black owned backdrop. Protection remained enabled through companion/workspace transitions, hide/show, and renderer reload. The black-background video establishes suppressed app pixels and lifecycle behavior; it cannot by itself distinguish clean omission from black redaction.
+
+A separate known **magenta background (`#c525d6`)** resolves that distinction. Each display API captured one still in each OFF → ON → restored OFF state:
+
+| External display capture | OFF and restored OFF | Protection ON | Meaning |
+| --- | --- | --- | --- |
+| DXGI Desktop Duplication (`ddagrab`) | Recognizable app palette in 96.148% of the crop | 100% known magenta background, 0% app palette, 0% black | Clean background reveal in this tested app crop |
+| Windows.Graphics.Capture monitor 0 (`gfxcapture`) | Recognizable app palette in 96.148% of the crop | 100% known magenta background, 0% app palette, 0% black | Clean background reveal in this tested display path; these are stills, not a WGC video test |
+
+The full-display APIs were cropped to the owned app region; these are not whole-desktop recordings or a Scaler recipient-view test. All complete still frames contained 858,600 RGB bytes. DXGI still capture exited normally with code 0. For WGC, the fixed-size collector intentionally terminated the owned FFmpeg process after receiving a complete frame (exit code null, signal `SIGTERM`), instead of treating a teardown hang as a normal exit. Safe app-only DXGI OFF/ON images were visually inspected and are shown in [capture privacy](CAPTURE_PRIVACY.md#verified-source-results).
+
+Exact-window WGC was checked separately: OFF/restored OFF each produced one recognizable app frame; protection ON delivered **0 of 858,600 required bytes** within 20 seconds and timed out. That protected result is **capture unavailable**, not pixel proof of an invisible or black window. It is distinct from the successful WGC display-capture stills above. The actual installed 0.2.2 unprotected exact-window baseline is recorded at the top of this document; installed protection ON remains unverified.
+
+Reproduce on a Windows desktop with FFmpeg's `ddagrab` and `gfxcapture` filters available: `npm run build`, then `npx tsx tests/app-recording-smoke.ts`. The harness cleans up its isolated profile and owned processes; numeric reports and local evidence are written under ignored `test-results/app-recording/`. These results cover one machine, source build, and the named paths, not every screen recorder, conferencing app, or process/keyboard monitoring system.
+
+### Historical 0.2.0 built LucentCue app
 
 `tests/app-recording-smoke.ts` recorded the actual built LucentCue source app in an isolated empty profile with a mocked catalog, no keys/history, and zero completion requests. Native protection was changed through the real Settings IPC and checked in companion and workspace modes. An owned opaque backdrop and strict crops kept unrelated desktop content outside the recordings; no other application received input.
 
@@ -221,13 +250,13 @@ FFmpeg 9.0 `ddagrab` used DXGI Desktop Duplication on Windows 11 with Electron 4
 
 Every decoded frame assertion passed, native protection flags matched the requested states, and no renderer errors occurred. This validates the built source app and tested DXGI configuration; it is not an installed-binary test or a result for WGC, OBS, Zoom, cameras, or every recorder. Reproduce on a Windows desktop with FFmpeg available by running `npm run build`, then `npx tsx tests/app-recording-smoke.ts`. Local recording evidence stays in ignored `test-results/`.
 
-### Independent fixture
+### Historical independent fixture
 
-`tests/capture-protection-smoke.ts` exercised a separate harmless Electron fixture and owned opaque backdrop on Windows. It did not control the user's other applications. FFmpeg `ddagrab` captured a 605 × 405 region strictly within that backdrop using DXGI Desktop Duplication. OFF → ON → restored OFF produced native protection flags false → true → false. The current video experiment recorded 1.2 seconds per state at 5 fps, decoded six frames per state, and asserted every frame:
+`tests/capture-protection-smoke.ts` exercised a separate harmless Electron fixture and owned opaque backdrop on Windows. It did not control the user's other applications. FFmpeg `ddagrab` captured a 605 × 405 region strictly within that backdrop using DXGI Desktop Duplication. OFF → ON → restored OFF produced native protection flags false → true → false. That video experiment recorded 1.2 seconds per state at 5 fps, decoded six frames per state, and asserted every frame:
 
 | Tool/API and mode | Protection off | Protection on | Restored off | Interpretation |
 | --- | --- | --- | --- | --- |
-| FFmpeg `ddagrab`, DXGI cropped display video | 96.8766% fixture colors in all 6 frames | All 6 frames 100% black | 96.8766% fixture colors in all 6 frames | Valid paired video baseline: this tested path blacked out the protected fixture throughout the short recording |
+| FFmpeg `ddagrab`, DXGI cropped display video | 96.8766% fixture colors in all 6 frames | All 6 frames 100% black | 96.8766% fixture colors in all 6 frames | Valid paired video baseline: protected pixels were black over the black backdrop; this did not distinguish redaction from background reveal |
 | FFmpeg `gdigrab`, GDI window-title capture | Black | Black | Black | **Inconclusive**: neither OFF baseline showed the fixture |
 | Windows.Graphics.Capture | Not tested | Not tested | Not tested | No claim |
 | OBS/Zoom or other actual target recorder/share | Not tested | Not tested | Not tested | No claim |
