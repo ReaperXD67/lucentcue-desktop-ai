@@ -1,12 +1,12 @@
 # Get started with LucentCue on Windows
 
-Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.0 preview introduces a compact companion and a full workspace; source, package, and installation results are recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied during testing, so live model answers have not been verified.
+Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.1 preview includes a compact companion, a full workspace, and appearance controls; source, package, and installation results are recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied during testing, so live model answers have not been verified.
 
 ## Install or upgrade
 
-Download the Windows installer and `SHA256SUMS.txt` from the [0.2.0 preview release](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1). The installer is unsigned. On a device whose policy permits installation, open LucentCue from the Start menu afterwards. Installed users do not need Node.js, npm, or a source checkout.
+Download the Windows installer and `SHA256SUMS.txt` from the [0.2.1 preview release](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1). The installer is unsigned. On a device whose policy permits installation, open LucentCue from the Start menu afterwards. Installed users do not need Node.js, npm, or a source checkout.
 
-On the tested PC, Windows reported **“An Application Control policy has blocked this file.”** The downloaded CI installer matched the published checksum, but did not start; 0.1.1 remains installed. Its former show/hide default is still `Alt+R`, and the new companion/`Alt+W` behavior is not installed there yet. The next step for that device is a build signed by a certificate trusted by its policy, or deployment approved by its administrator. No policy or security settings were changed during testing.
+On the tested PC, Windows reported **“An Application Control policy has blocked this file.”** The downloaded 0.2.0 CI installer matched the published checksum, but did not start; 0.1.1 remains installed. Its former show/hide default is still `Alt+R`, and the new companion/`Alt+W` behavior is not installed there yet. The unsigned 0.2.1 installer was not used to retry that refusal. The next step for that device is a build signed by a certificate trusted by its policy, or deployment approved by its administrator. No policy or security settings were changed during testing.
 
 The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. For an upgrade, use **Quit LucentCue** in the app or tray menu first, then run the newer official installer and choose the same installation location. There is no automatic updater. If local history matters to you, export the conversations you want to keep before changing versions.
 
@@ -14,9 +14,9 @@ The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. Fo
 
 LucentCue starts as a small companion for questions and answers. Select its **Settings** button to open the full workspace and Settings. The full workspace contains connection setup, model selection, history controls, browser assistance, and exports. Return to the companion when you want a smaller window. Both views share the active conversation, unsent draft, and attachments; switching views does not send a message.
 
-### Appearance in 0.2.1 source
+### Appearance in 0.2.1
 
-Open **Settings → Appearance** and choose **Dark**, **Light**, or **Follow system**, then select **Save settings**. Dark is the default, including when upgrading older settings. Windows/macOS builds allow **Companion opacity** from 85–100%; this fades the entire small window, including its text. The full workspace always stays solid. Linux and browser previews do not support this opacity control. These changes are in 0.2.1 source and are not present in the published 0.2.0 or the tested PC's installed 0.1.1.
+Open **Settings → Appearance** and choose **Dark**, **Light**, or **Follow system**, then select **Save settings**. Dark is the default, including when upgrading older settings. Windows/macOS builds allow **Companion opacity** from 85–100%; this fades the entire small window, including its text. The full workspace always stays solid. Linux and browser previews do not support this opacity control. These changes are in the 0.2.1 preview and are not present in the earlier 0.2.0 or the tested PC's installed 0.1.1.
 
 For free trusted Windows signing, the maintainer must complete the [SignPath application and pipeline setup](SIGNING.md). The draft is ready; approval and a signed installer remain pending. A successful signature check and installation on this PC are required before calling the upgrade complete.
 

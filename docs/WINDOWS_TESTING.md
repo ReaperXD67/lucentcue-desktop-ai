@@ -2,6 +2,16 @@
 
 This record separates source/release checks, tests of an installed application, and live provider access. **0.2.0 is published after successful source tests, cross-platform CI, native packaging, and asset verification.** Windows Application Control blocked the downloaded CI installer on the tested PC before it started, so 0.1.1 remains installed and installed 0.2.0 behavior is unverified. No personal model key was supplied.
 
+## 0.2.1 appearance and signing preparation
+
+The source adds Dark, Light, and Follow system themes, persisted companion opacity, and the actual application version. All **105 automated tests passed with real headed Chromium enabled**; default CI runs 96 tests and skips nine optional browser checks. Formatting, typecheck, production build, and the production dependency audit passed with zero reported vulnerabilities. Browser-preview visual inspection covered the 480 × 380 dark companion and both color palettes in the workspace; this does not establish native opacity behavior.
+
+Hosted Windows desktop smoke checks cover saving Light and System settings, simulated system-color changes, Dark persistence after renderer reload, companion native opacity near 0.85, workspace recovery to 1, and resetting the preference. The native suite uses a temporary profile and mocked completions. A follow-up harness change launches the project directory, matching normal app startup, and asserts the reported version against package.json. Exact CI and packaging results are linked in [preview notes](RELEASE_NOTES.md).
+
+Read-only Windows Code Integrity logs show events **3077 and 3033** for the downloaded 0.2.0 installer, reporting enterprise signing requirements. The installer did not run. No trust store or security policy was changed, and a newly built local executable was not used to work around that refusal. The PC's installed app remains **0.1.1**; 0.2.1 installation, installed `Alt+W`, and installed opacity behavior remain unverified.
+
+The [signing guide](SIGNING.md) contains an owner-reviewed application draft, not an accepted subscription. Its read-only verifier rejected the unsigned 0.2.0 installer and mixed 0.1.1 installed payload on PowerShell 5.1 and 7, including missing-file, duplicate-input, and report-overwrite cases. No successful signed-release fixture is available. Trusted signing enrollment, complete payload integration, and actual installation are pending. Existing 0.2.0 recording results below were not rerun for 0.2.1.
+
 ## Published 0.1.0 baseline
 
 Read-only GitHub check on 17 October 2026 found:

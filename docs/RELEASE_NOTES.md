@@ -2,14 +2,18 @@
 
 ## 0.2.1 — appearance and signing preparation
 
-Source changes, not yet a signed or installed release:
+Published as [v0.2.1-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1), with all five unsigned native packages and `SHA256SUMS.txt`. Trusted signing and installation on the tested PC remain pending.
 
 - Dark by default, with Light and Follow system themes across chat, Settings, Markdown, and browser panels.
 - Persisted 85–100% whole-companion opacity on Windows/macOS. The full workspace stays opaque; Linux and browser previews keep solid windows.
 - Actual app version in the workspace footer, replacing the stale version label.
 - A free-signing application draft and read-only Windows signature/payload verification procedure in [SIGNING.md](SIGNING.md). No application approval, signing credentials, or trusted signature has been obtained.
 
-Validation is in progress. The published 0.2.0 assets remain unchanged. Windows Code Integrity events 3077 and 3033 confirm that the downloaded 0.2.0 installer failed this device's enterprise signing requirements; this is not an installer crash. The installed app remains 0.1.1. Security settings and trust stores were not changed.
+All **105 automated tests passed with real headed Chromium enabled**. [CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117067053) passed on Windows, macOS, and Linux, including **21 Windows Electron smoke checks**. Appearance checks save Light and System, simulate system-color changes, verify Dark after renderer reload, compare native companion opacity near 0.85 with workspace opacity 1, and assert the actual startup version. Formatting, typecheck, production build, and the production dependency audit passed with zero reported vulnerabilities. Mac/Linux desktop runtime behavior remains unverified.
+
+[Native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117090507) and [asset verification](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117292327) passed at source commit `b177ef7`. The Windows installer is 117,815,808 bytes, SHA-256 `243889d851e00f4fad18eed48a493ac075bf0a6f1414d418dc9e65cfb4d979d3`.
+
+The published 0.2.0 assets remain unchanged. Windows Code Integrity events 3077 and 3033 confirm that the downloaded 0.2.0 installer failed this device's enterprise signing requirements; this is not an installer crash. The installed app remains 0.1.1, and the unsigned 0.2.1 installer was not used to retry the block. Security settings and trust stores were not changed. The 0.2.0 recording experiments below were not repeated for 0.2.1.
 
 ## 0.2.0 — published preview
 

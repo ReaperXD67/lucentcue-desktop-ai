@@ -4,7 +4,7 @@
 
 An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Keep a small companion one shortcut away, open the full workspace when you need it, and choose exactly what you send to your own OpenRouter, OpenAI, or Gemini account.
 
-**0.2.1 source preview · MIT · Electron + React + TypeScript.** The [published 0.2.0 preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1) has Windows, macOS, and Linux packages with SHA-256 checksums. They are unsigned; Application Control blocked installation on the tested PC, which remains on 0.1.1. The new appearance controls are in source, pending package delivery. See [release status](#release-status), [signing setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
+**0.2.1 developer preview · MIT · Electron + React + TypeScript.** [Download the preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1) for Windows, macOS, and Linux, with SHA-256 checksums. Packages are unsigned. Application Control blocked the previous 0.2.0 installer on the tested PC, which remains on 0.1.1; a trusted signed upgrade is still pending. See [release status](#release-status), [signing setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
 
 For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md). [Windows testing](docs/WINDOWS_TESTING.md) records actual installation results separately from capture/privacy checks and live model access.
 
@@ -121,7 +121,7 @@ The manual **Attach packages to draft preview** workflow transfers verified succ
 
 ## Release status
 
-0.2.1 adds persisted appearance preferences, native companion opacity, an opaque workspace, and an accurate version label. Its verification and delivery status are recorded in [preview notes](docs/RELEASE_NOTES.md). The evidence below describes the already published 0.2.0 source and packages.
+0.2.1 passed **105 automated tests with real headed Chromium enabled** and [CI on Windows, macOS, and Linux](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117067053), including **21 Windows Electron smoke checks**. Native checks verify theme saving, simulated system-color changes, persisted appearance, companion opacity, an opaque workspace, and the actual startup version. [Native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117090507) and [asset/checksum verification](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117292327) passed at `b177ef7`. All five unsigned packages and checksums are [published](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1). Installed 0.2.1 behavior and trusted signing remain pending. The evidence below describes the earlier 0.2.0 source and packages.
 
 Current 0.2.0 source passed **100 automated tests with headed Chromium enabled, repeated twice, and 21 Electron smoke checks** on Windows. Checks cover companion/workspace transitions, shared draft preservation, real screenshot preview/removal, visible browser read/attach/approved fill without submission, tray controls, shortcut recovery, and capture-protection state across view changes. Native keypress tests verified `Alt+W` hide/restore, `Alt+Shift+S` screenshot preview/removal, and restore with the tray icon off. These used an isolated source-test profile and do not establish installed-package behavior.
 

@@ -1,6 +1,6 @@
 # Code signing policy
 
-**Status: not enrolled, not signed.** The public 0.2.0 preview contains unsigned packages. Windows Application Control refused its checksum-verified installer on the tested PC; the existing 0.1.1 installation remains. A valid signature must also satisfy that device's policy. Signing alone cannot promise installation on every managed PC.
+**Status: not enrolled, not signed.** The public 0.2.1 and earlier 0.2.0 previews contain unsigned packages. Windows Application Control refused the checksum-verified 0.2.0 installer on the tested PC; the existing 0.1.1 installation remains. A valid signature must also satisfy that device's policy. Signing alone cannot promise installation on every managed PC.
 
 ## Free Windows route
 
@@ -20,7 +20,7 @@ Review these facts and use them in the corresponding form fields. Add your own n
 | Homepage / repository    | https://github.com/ReaperXD67/lucentcue-desktop-ai                                                                                                                                |
 | License                  | MIT; repository source and build scripts are public                                                                                                                               |
 | Maintainer               | Repository owner [ReaperXD67](https://github.com/ReaperXD67)                                                                                                                      |
-| Released Windows package | [0.2.0 preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1)                                                                                 |
+| Released Windows package | [0.2.1 preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1)                                                                                 |
 | Build system             | GitHub Actions on GitHub-hosted Windows, macOS, and Linux runners                                                                                                                 |
 | Native build workflow    | [.github/workflows/build.yml](../.github/workflows/build.yml)                                                                                                                     |
 | Signing needed           | Windows x64 Electron application, NSIS installer and uninstaller; payload coverage needs review                                                                                   |
