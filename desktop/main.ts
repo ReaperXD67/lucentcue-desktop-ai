@@ -8,6 +8,7 @@ import {
   ipcMain,
   Menu,
   nativeImage,
+  nativeTheme,
   safeStorage,
   screen,
   shell,
@@ -50,6 +51,7 @@ let settingsBusy = false;
 let storage: DesktopStorage;
 let trustedURL = '';
 let windowMode: WindowMode = 'companion';
+const appearanceOpacitySupported = process.platform !== 'linux';
 const modeSizes = {
   companion: { width: 480, height: 380, minWidth: 360, minHeight: 240 },
   workspace: { width: 1240, height: 820, minWidth: 880, minHeight: 620 },
@@ -119,6 +121,7 @@ function setWindowMode(next: WindowMode): void {
     // Reapply the supported OS flag after native geometry/style changes.
     applyCaptureProtection();
     applyAlwaysOnTop(storage.settings.alwaysOnTop);
+    applyAppearance(storage.settings);
   }
   window.webContents.send('app:window-mode', next);
   show();
@@ -138,6 +141,15 @@ function applyAlwaysOnTop(enabled: boolean): void {
   // demote the window when that taskbar is non-topmost. The documented popup
   // level keeps an explicitly pinned window pinned without changing OS settings.
   window?.setAlwaysOnTop(enabled, process.platform === 'win32' ? 'pop-up-menu' : 'floating');
+}
+function applyAppearance(settings: Settings): void {
+  if (nativeTheme.themeSource !== settings.theme) nativeTheme.themeSource = settings.theme;
+  if (!window || window.isDestroyed()) return;
+  window.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#151c19' : '#f8f9f6');
+  // This is whole-window translucency for a readable companion, including text.
+  // Keep workspace settings opaque, and avoid unsupported Linux compositors.
+  if (appearanceOpacitySupported)
+    window.setOpacity(windowMode === 'companion' ? settings.companionOpacity : 1);
 }
 function emit(event: ChatEvent): void {
   if (window && !window.isDestroyed()) window.webContents.send('chat:event', event);
@@ -286,6 +298,7 @@ async function captureScreen(): Promise<Attachment> {
 
 function registerIPC(): void {
   handle('app:state', () => ({
+    version: app.getVersion(),
     windowMode,
     settings: storage.settings,
     keys: storage.keyStatus(),
@@ -293,6 +306,7 @@ function registerIPC(): void {
     storageNotice: storage.notice,
     captureProtectionSupported,
     captureProtectionNotice,
+    appearanceOpacitySupported,
   }));
   handle('app:settings', async (input: unknown) => {
     if (settingsBusy) throw new Error('Settings are already being saved. Please try again.');
@@ -307,6 +321,7 @@ function registerIPC(): void {
         if (captureProtectionSupported && window && !window.isDestroyed())
           window.setContentProtection(next.captureProtection);
         setTrayVisible(next.showTrayIcon);
+        applyAppearance(next);
         await storage.saveSettings(next);
       } catch (error) {
         if (captureProtectionSupported && window && !window.isDestroyed()) {
@@ -317,6 +332,7 @@ function registerIPC(): void {
           }
         }
         setTrayVisible(previous.showTrayIcon);
+        applyAppearance(previous);
         installShortcuts(previous, next);
         throw error;
       }
@@ -470,6 +486,7 @@ function setTrayVisible(visible: boolean): void {
 async function start(): Promise<void> {
   storage = new DesktopStorage(join(app.getPath('userData'), 'local'), safeStorage);
   await storage.init();
+  nativeTheme.themeSource = storage.settings.theme;
   const iconPath = join(app.getAppPath(), 'assets', 'icon.png');
   const area = screen.getPrimaryDisplay().workArea;
   const size = modeSizes.companion;
@@ -482,7 +499,7 @@ async function start(): Promise<void> {
     title: 'LucentCue',
     frame: false,
     resizable: true,
-    backgroundColor: '#f8f9f6',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#151c19' : '#f8f9f6',
     autoHideMenuBar: true,
     ...(existsSync(iconPath) ? { icon: iconPath } : {}),
     alwaysOnTop: storage.settings.alwaysOnTop,
@@ -496,6 +513,7 @@ async function start(): Promise<void> {
     },
   });
   applyCaptureProtection();
+  applyAppearance(storage.settings);
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-attach-webview', (event) => event.preventDefault());
   window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) =>
@@ -544,6 +562,10 @@ async function start(): Promise<void> {
 }
 
 app.on('second-instance', show);
+nativeTheme.on('updated', () => {
+  if (window && !window.isDestroyed())
+    window.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#151c19' : '#f8f9f6');
+});
 app.on('activate', show);
 app.on('window-all-closed', () => {
   /* Tray and explicit Quit keep lifecycle predictable on all platforms. */

@@ -34,7 +34,7 @@ LucentCue is a working brand, with the proposed descriptive repository slug `luc
 
 ## Evidence on Hand
 
-Public Pluely README and historical license research; a supplied Windows installer available for static inspection. Current Pluely v1 is proprietary. This implementation is independently authored; no upstream source or binary code is copied. There are no user testimonials, traction metrics, verified speed benchmarks, or production releases yet.
+Public Pluely README and historical license research; a supplied Windows installer available for static inspection. This implementation is independently authored; no upstream source or binary code is copied. Public unsigned previews and cross-platform CI packages exist. Local rendering benchmarks and Windows capture experiments have documented methods and limits in docs/WINDOWS_TESTING.md. No live provider completion, signed release, macOS/Linux runtime validation, user testimonials, or traction claims have been verified.
 
 ## Product Principles
 

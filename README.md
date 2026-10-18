@@ -4,7 +4,7 @@
 
 An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Keep a small companion one shortcut away, open the full workspace when you need it, and choose exactly what you send to your own OpenRouter, OpenAI, or Gemini account.
 
-**0.2.0 developer preview · MIT · Electron + React + TypeScript.** [Download the preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1) for Windows, macOS, and Linux, with SHA-256 checksums. Packages are unsigned. Windows Application Control blocked this preview's installer on the tested PC, so its installed app remains on 0.1.1. See [release status](#release-status) and [preview notes](docs/RELEASE_NOTES.md).
+**0.2.1 source preview · MIT · Electron + React + TypeScript.** The [published 0.2.0 preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1) has Windows, macOS, and Linux packages with SHA-256 checksums. They are unsigned; Application Control blocked installation on the tested PC, which remains on 0.1.1. The new appearance controls are in source, pending package delivery. See [release status](#release-status), [signing setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
 
 For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md). [Windows testing](docs/WINDOWS_TESTING.md) records actual installation results separately from capture/privacy checks and live model access.
 
@@ -13,6 +13,7 @@ For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md)
 ## What it does
 
 - Starts in a compact companion for quick questions. Its Settings button opens the full workspace with connections, model selection, conversation search, and browser assistance.
+- Defaults to a readable dark theme, with Light and Follow system options. Windows/macOS companion opacity is adjustable from 85–100%; the full workspace stays opaque.
 - Shares the active conversation, draft, and attachments between companion and workspace; streams Markdown answers with a Stop button.
 - Offers a **Free** mode restricted to currently verified zero-price OpenRouter models, with no automatic paid fallback.
 - Connects your own OpenRouter, OpenAI, and Gemini keys through Settings.
@@ -75,6 +76,8 @@ Change global shortcuts in Settings. If a shortcut is already taken, choose anot
 
 The companion is a small resizable window; the full workspace opens from its Settings control. Switching views preserves the conversation and unsent draft. You can turn **Show tray icon** off to reduce notification-area clutter and restore it from Settings. This does not hide LucentCue from Task Manager or the operating system; keep your configured show/hide shortcut available when the tray icon is off. On Windows, **Keep window on top** uses a level above the taskbar to retain native topmost status reliably.
 
+In **Settings → Appearance**, choose **Dark**, **Light**, or **Follow system**, adjust **Companion opacity**, and select **Save settings**. Opacity affects the whole companion, including text. Linux and the browser interface preview stay opaque. These are visual preferences; recording privacy uses its separate OS protection setting.
+
 In **Browser assist**, open a site, read the current visible tab, review its text, and attach it to your question. To write into the page, select a discovered field and review the exact text before filling it. Filling triggers normal website input events, which can save drafts or cause other website behavior. The model cannot submit forms or perform browser actions itself. The browser has a separate persistent profile; it does not attach to your everyday browser. See [supported fields and boundaries](docs/BROWSER.md).
 
 ## Data and privacy
@@ -108,11 +111,17 @@ Set `LUCENTCUE_DESKTOP_FEATURES=1` for the optional real screenshot/browser smok
 | `npm run dist:mac` | macOS x64 / arm64 DMG targets |
 | `npm run dist:linux` | Linux x64 AppImage / deb targets |
 
-Build artifacts go to `release/`. Package on the target OS for release testing. Code signing, macOS notarization, and automatic updates are not configured. Optional Chromium setup is available in the app; browser binaries are downloaded separately.
+Build artifacts go to `release/`. Package on the target OS for release testing. Trusted signing enrollment, macOS notarization, and automatic updates are not complete. Optional Chromium setup is available in the app; browser binaries are downloaded separately.
+
+## Code signing policy
+
+No release currently carries a LucentCue publisher signature. A free SignPath Foundation application draft and a read-only Windows signature verifier are prepared in [SIGNING.md](docs/SIGNING.md). Enrollment, project approval, and a verified pipeline covering the installed executable and installer are still required. No sponsorship or certificate approval is claimed. Signing does not guarantee acceptance by every device's Application Control policy.
 
 The manual **Attach packages to draft preview** workflow transfers verified successful native-build artifacts and SHA-256 checksums to an existing draft prerelease. It keeps the release unpublished for maintainer review; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Release status
+
+0.2.1 adds persisted appearance preferences, native companion opacity, an opaque workspace, and an accurate version label. Its verification and delivery status are recorded in [preview notes](docs/RELEASE_NOTES.md). The evidence below describes the already published 0.2.0 source and packages.
 
 Current 0.2.0 source passed **100 automated tests with headed Chromium enabled, repeated twice, and 21 Electron smoke checks** on Windows. Checks cover companion/workspace transitions, shared draft preservation, real screenshot preview/removal, visible browser read/attach/approved fill without submission, tray controls, shortcut recovery, and capture-protection state across view changes. Native keypress tests verified `Alt+W` hide/restore, `Alt+Shift+S` screenshot preview/removal, and restore with the tray icon off. These used an isolated source-test profile and do not establish installed-package behavior.
 

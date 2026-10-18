@@ -1,6 +1,6 @@
 # LucentCue design
 
-The desktop workspace operates as a quiet research desk: a deep evergreen navigation rail, warm paper working area, restrained green actions, and locally bundled DM Sans. This is an engineering design choice under the user's request for creative, easy-to-use execution; no final branding approval is implied.
+The desktop workspace operates as a quiet research desk: deep evergreen navigation, a dark charcoal working area by default, pale sage actions, and locally bundled DM Sans. Light mode retains the warm paper working area; Follow system responds to the desktop theme. Companion translucency is a bounded readability preference, while the full workspace stays opaque. This is an engineering design choice under the user's request for creative, easy-to-use execution; no final branding approval is implied.
 
 The chat composer anchors the window. Model cost mode, current model, attachment previews, and sending state sit together. Browser and settings tools open as adjacent panels, preserving the conversation. At compact widths navigation collapses and panels occupy the content region. Dense state and empty state share the same hierarchy.
 

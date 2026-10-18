@@ -104,6 +104,20 @@ export function validateSettings(value: unknown): Settings {
   const showTrayIcon =
     input.showTrayIcon === undefined ? DEFAULT_SETTINGS.showTrayIcon : input.showTrayIcon;
   if (typeof showTrayIcon !== 'boolean') throw new Error('showTrayIcon must be true or false.');
+  const theme = input.theme === undefined ? DEFAULT_SETTINGS.theme : input.theme;
+  if (theme !== 'dark' && theme !== 'light' && theme !== 'system')
+    throw new Error('Choose dark, light, or system appearance.');
+  const companionOpacity =
+    input.companionOpacity === undefined
+      ? DEFAULT_SETTINGS.companionOpacity
+      : input.companionOpacity;
+  if (
+    typeof companionOpacity !== 'number' ||
+    !Number.isFinite(companionOpacity) ||
+    companionOpacity < 0.85 ||
+    companionOpacity > 1
+  )
+    throw new Error('Companion opacity must be between 85% and 100%.');
   const toggle = shortcut(input.shortcut);
   const capture = shortcut(input.captureShortcut);
   if (toggle.toLowerCase() === capture.toLowerCase())
@@ -117,6 +131,8 @@ export function validateSettings(value: unknown): Settings {
     alwaysOnTop: input.alwaysOnTop as boolean,
     captureProtection,
     showTrayIcon,
+    theme,
+    companionOpacity,
     saveHistory: input.saveHistory as boolean,
     systemPrompt: stringValue(input.systemPrompt, 'System prompt', 12_000),
   };

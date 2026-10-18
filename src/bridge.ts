@@ -6,13 +6,16 @@ import {
   type Provider,
   type WindowMode,
 } from '../shared/types';
+import { version } from '../package.json';
 
 export const isPreview = !window.desktop;
 let previewState: AppState = {
+  version,
   windowMode: 'companion',
   settings: { ...DEFAULT_SETTINGS },
   keys: { openrouter: false, openai: false, gemini: false },
   conversations: [],
+  appearanceOpacitySupported: false,
   captureProtectionSupported: false,
   captureProtectionNotice: 'Capture privacy is available in supported desktop builds.',
 };

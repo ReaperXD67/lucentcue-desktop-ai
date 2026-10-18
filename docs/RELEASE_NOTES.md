@@ -1,4 +1,17 @@
-# LucentCue 0.2.0 preview
+# LucentCue preview notes
+
+## 0.2.1 — appearance and signing preparation
+
+Source changes, not yet a signed or installed release:
+
+- Dark by default, with Light and Follow system themes across chat, Settings, Markdown, and browser panels.
+- Persisted 85–100% whole-companion opacity on Windows/macOS. The full workspace stays opaque; Linux and browser previews keep solid windows.
+- Actual app version in the workspace footer, replacing the stale version label.
+- A free-signing application draft and read-only Windows signature/payload verification procedure in [SIGNING.md](SIGNING.md). No application approval, signing credentials, or trusted signature has been obtained.
+
+Validation is in progress. The published 0.2.0 assets remain unchanged. Windows Code Integrity events 3077 and 3033 confirm that the downloaded 0.2.0 installer failed this device's enterprise signing requirements; this is not an installer crash. The installed app remains 0.1.1. Security settings and trust stores were not changed.
+
+## 0.2.0 — published preview
 
 Published as **[v0.2.0-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.0-preview.1)** after source validation, cross-platform CI, native packaging, and asset verification passed. Downloads include Windows x64 NSIS, macOS x64/arm64 DMGs, Linux x64 AppImage/deb, and `SHA256SUMS.txt`. Packages are unsigned and macOS builds are not notarized.
 

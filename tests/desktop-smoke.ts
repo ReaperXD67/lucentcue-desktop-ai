@@ -157,6 +157,10 @@ try {
 
   assert.equal(first.windowMode, 'companion');
   assert.equal(first.settings.shortcut, 'Alt+W');
+  assert.equal(first.settings.theme, 'dark');
+  assert.equal(first.settings.companionOpacity, 1);
+  assert.ok(first.version);
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
   const companionDraft = 'Keep this draft when opening settings.';
   await renderer.getByRole('textbox', { name: 'Message LucentCue' }).fill(companionDraft);
   await renderer.screenshot({
@@ -196,6 +200,78 @@ try {
   assert.equal(invalidMode, true);
   assert.equal((await readState()).windowMode, 'workspace');
   checked('Invalid window modes are rejected without changing the active workspace');
+
+  await renderer.getByRole('button', { name: 'Settings', exact: true }).click();
+  const theme = renderer.getByRole('combobox', { name: 'Theme', exact: true });
+  await theme.selectOption('light');
+  await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
+  await renderer.getByText('Settings saved.', { exact: true }).waitFor();
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+  assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'light');
+
+  await theme.selectOption('system');
+  await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
+  await renderer.getByText('Settings saved.', { exact: true }).waitFor();
+  assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'system');
+  await renderer.emulateMedia({ colorScheme: 'dark' });
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+  await renderer.emulateMedia({ colorScheme: 'light' });
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+  checked('Light and system themes apply through saved settings and follow changing system colors');
+
+  await theme.selectOption('dark');
+  const opacity = renderer.getByRole('slider', { name: 'Companion opacity', exact: true });
+  if (first.appearanceOpacitySupported) {
+    await opacity.focus();
+    await opacity.press('Home');
+    assert.equal(await opacity.inputValue(), '85');
+  } else {
+    assert.equal(await opacity.isDisabled(), true);
+  }
+  await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
+  await renderer.getByText('Settings saved.', { exact: true }).waitFor();
+  assert.equal(
+    await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].getOpacity(),
+    ),
+    1,
+  );
+  await renderer.getByRole('button', { name: 'Close settings' }).click();
+  await renderer.getByRole('button', { name: 'Companion mode', exact: true }).click();
+  await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).waitFor();
+  if (first.appearanceOpacitySupported) {
+    const nativeOpacity = await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].getOpacity(),
+    );
+    assert.ok(Math.abs(nativeOpacity - 0.85) < 0.01, `Companion opacity was ${nativeOpacity}`);
+  }
+  await renderer.reload();
+  await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).waitFor();
+  const reloadedAppearance = await readState();
+  assert.equal(reloadedAppearance.settings.theme, 'dark');
+  assert.equal(
+    reloadedAppearance.settings.companionOpacity,
+    first.appearanceOpacitySupported ? 0.85 : 1,
+  );
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+  await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).click();
+  await theme.waitFor();
+  assert.equal(
+    await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].getOpacity(),
+    ),
+    1,
+  );
+  if (first.appearanceOpacitySupported) {
+    await opacity.focus();
+    await opacity.press('End');
+    await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
+    await renderer.getByText('Settings saved.', { exact: true }).waitFor();
+  }
+  await renderer.getByRole('button', { name: 'Close settings' }).click();
+  checked(
+    'Appearance persists after reload; companion translucency leaves the workspace fully opaque',
+  );
 
   async function resize(width: number, height: number) {
     await application!.evaluate(

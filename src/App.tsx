@@ -87,6 +87,17 @@ export default function App() {
   const selectedModel = models.find((model) => model.id === settings.model);
   const companion = state?.windowMode === 'companion';
 
+  useEffect(() => {
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const applyTheme = () => {
+      document.documentElement.dataset.theme =
+        settings.theme === 'system' ? (systemTheme.matches ? 'dark' : 'light') : settings.theme;
+    };
+    applyTheme();
+    systemTheme.addEventListener('change', applyTheme);
+    return () => systemTheme.removeEventListener('change', applyTheme);
+  }, [settings.theme]);
+
   const load = useCallback(async () => {
     try {
       setLoadError('');
@@ -554,7 +565,7 @@ export default function App() {
             >
               <Settings2 size={17} />
               <span>Settings</span>
-              <span className="version">v0.1</span>
+              <span className="version">v{state.version}</span>
             </button>
             <div className="sidebar-footer">
               <ShieldCheck size={13} />

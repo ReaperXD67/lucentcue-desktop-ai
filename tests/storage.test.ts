@@ -215,6 +215,45 @@ describe('history policy', () => {
 });
 
 describe('IPC payload validators', () => {
+  it('defaults legacy appearance to dark and opaque without changing saved shortcuts', async () => {
+    const { theme: _theme, companionOpacity: _opacity, ...legacy } = DEFAULT_SETTINGS;
+    expect(validateSettings(legacy)).toMatchObject({ theme: 'dark', companionOpacity: 1 });
+    await writeFile(
+      join(directory, 'settings.json'),
+      JSON.stringify({ ...legacy, shortcut: 'Control+Shift+Space', settingsVersion: 2 }),
+    );
+    const storage = new DesktopStorage(directory, secure);
+    await storage.init();
+    expect(storage.settings).toMatchObject({
+      theme: 'dark',
+      companionOpacity: 1,
+      shortcut: 'Control+Shift+Space',
+    });
+  });
+  it.each(['dark', 'light', 'system'] as const)(
+    'persists %s appearance and companion opacity across restarts',
+    async (theme) => {
+      const storage = new DesktopStorage(directory, secure);
+      await storage.init();
+      await storage.saveSettings(
+        validateSettings({ ...DEFAULT_SETTINGS, theme, companionOpacity: 0.85 }),
+      );
+      const reloaded = new DesktopStorage(directory, secure);
+      await reloaded.init();
+      expect(reloaded.settings).toMatchObject({ theme, companionOpacity: 0.85 });
+    },
+  );
+  it('rejects invalid themes and opacity values instead of hiding or disabling the window', () => {
+    for (const theme of ['', 'transparent', null, {}, false])
+      expect(() => validateSettings({ ...DEFAULT_SETTINGS, theme })).toThrow('appearance');
+    for (const companionOpacity of [0, 0.8499, 1.0001, NaN, Infinity, '0.9', null, {}])
+      expect(() => validateSettings({ ...DEFAULT_SETTINGS, companionOpacity })).toThrow(
+        'opacity must be between',
+      );
+    expect(validateSettings({ ...DEFAULT_SETTINGS, companionOpacity: 0.93 }).companionOpacity).toBe(
+      0.93,
+    );
+  });
   it('accepts only the two supported native window modes', () => {
     expect(validateWindowMode('companion')).toBe('companion');
     expect(validateWindowMode('workspace')).toBe('workspace');

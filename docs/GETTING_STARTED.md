@@ -14,6 +14,12 @@ The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. Fo
 
 LucentCue starts as a small companion for questions and answers. Select its **Settings** button to open the full workspace and Settings. The full workspace contains connection setup, model selection, history controls, browser assistance, and exports. Return to the companion when you want a smaller window. Both views share the active conversation, unsent draft, and attachments; switching views does not send a message.
 
+### Appearance in 0.2.1 source
+
+Open **Settings → Appearance** and choose **Dark**, **Light**, or **Follow system**, then select **Save settings**. Dark is the default, including when upgrading older settings. Windows/macOS builds allow **Companion opacity** from 85–100%; this fades the entire small window, including its text. The full workspace always stays solid. Linux and browser previews do not support this opacity control. These changes are in 0.2.1 source and are not present in the published 0.2.0 or the tested PC's installed 0.1.1.
+
+For free trusted Windows signing, the maintainer must complete the [SignPath application and pipeline setup](SIGNING.md). The draft is ready; approval and a signed installer remain pending. A successful signature check and installation on this PC are required before calling the upgrade complete.
+
 ## Connect your personal OpenRouter key
 
 You can browse OpenRouter's public free-model catalog without a key. This was observed in the installed preview, including **Free Models Router · vision**. Generating answers still requires a personal key; catalog loading is not a completion test. You can leave key setup for later.

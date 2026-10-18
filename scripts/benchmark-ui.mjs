@@ -31,10 +31,12 @@ const messages = Array.from({ length: 60 }, (_, index) => ({
 assert(messages.reduce((sum, message) => sum + message.content.length, 0) < 240_000);
 const fixture = {
   settings: {
+    theme: 'dark',
+    companionOpacity: 1,
     mode: 'free',
     provider: 'openrouter',
     model: 'openrouter/free',
-    shortcut: 'Alt+R',
+    shortcut: 'Alt+W',
     showTrayIcon: true,
     captureShortcut: 'Alt+Shift+S',
     alwaysOnTop: false,
@@ -44,6 +46,8 @@ const fixture = {
   },
   keys: { openrouter: true, openai: false, gemini: false },
   windowMode: 'workspace',
+  version: 'benchmark',
+  appearanceOpacitySupported: false,
   conversations: [
     { id: 'fixture-conversation', title: 'Synthetic performance fixture', updatedAt: 1, messages },
   ],

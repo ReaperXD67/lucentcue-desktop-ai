@@ -240,6 +240,48 @@ export default function SettingsPanel({
         </p>
       </section>
       <form onSubmit={(event) => void saveSettings(event)}>
+        <section className="settings-section" aria-labelledby={`${id}-appearance`}>
+          <h3 id={`${id}-appearance`}>Appearance</h3>
+          <label className="field" htmlFor={`${id}-theme`}>
+            Theme
+            <select
+              id={`${id}-theme`}
+              value={draft.theme}
+              disabled={saving}
+              onChange={(event) => update('theme', event.target.value as Settings['theme'])}
+            >
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="system">Follow system</option>
+            </select>
+          </label>
+          <div className="opacity-field">
+            <label htmlFor={`${id}-opacity`}>Companion opacity</label>
+            <output htmlFor={`${id}-opacity`}>{Math.round(draft.companionOpacity * 100)}%</output>
+            <input
+              id={`${id}-opacity`}
+              type="range"
+              min={85}
+              max={100}
+              step={1}
+              value={Math.round(draft.companionOpacity * 100)}
+              disabled={saving || !state.appearanceOpacitySupported}
+              aria-valuetext={`${Math.round(draft.companionOpacity * 100)} percent`}
+              aria-describedby={`${id}-opacity-help`}
+              onChange={(event) => update('companionOpacity', Number(event.target.value) / 100)}
+            />
+          </div>
+          <p className="field-help" id={`${id}-opacity-help`}>
+            {state.appearanceOpacitySupported
+              ? '85% is gently translucent; 100% is solid. The whole companion, including text, fades. The full workspace stays solid.'
+              : isPreview
+                ? 'Companion translucency is available in Windows and macOS desktop builds. This browser preview stays solid.'
+                : 'Companion translucency is available on Windows and macOS. Linux windows stay solid.'}
+          </p>
+          <p className="field-help appearance-save-note">
+            Save settings below to apply your appearance.
+          </p>
+        </section>
         <section className="settings-section" aria-labelledby={`${id}-workspace`}>
           <h3 id={`${id}-workspace`}>
             Workspace{' '}
