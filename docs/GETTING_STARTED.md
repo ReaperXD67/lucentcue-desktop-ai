@@ -41,6 +41,23 @@ The [free router](https://openrouter.ai/docs/cookbook/get-started/free-models-ro
 
 Free access is limited by [OpenRouter's current quotas](https://openrouter.ai/docs/api_reference/limits), account policy, and provider capacity. Limits and account tiers can change. A 429 means wait before retrying; changing client keys does not create extra quota. If the catalog or router is unavailable, retry later or select another currently listed free model.
 
+### Paid OpenRouter for screenshot questions
+
+For a budget starting point, choose **DeepSeek V4.1 Flash** for image questions and text answers. DeepSeek documents its native [image understanding](https://api-docs.deepseek.com/guides/vision/). **GPT-6 Luna** is an alternative if you prefer an OpenAI model. Neither recommendation has been validated with live paid completions in LucentCue; quality depends on the question and image readability.
+
+| Use | Exact OpenRouter model | Listed input / output per million tokens |
+| --- | --- | --- |
+| Budget starting point | [`deepseek/deepseek-v4.1-flash`](https://openrouter.ai/deepseek/deepseek-v4.1-flash) | From $0.04 / $0.144 |
+| GPT alternative | [`openai/gpt-6-luna`](https://openrouter.ai/openai/gpt-6-luna) | $0.10 / $0.50 standard short-context |
+
+Rates were checked on **18 October 2026**. DeepSeek's starting rates are from its cheapest listed provider; other providers charge more. LucentCue does not pin a provider, sort routes by price, or impose a paid price cap, so those starting rates are not a guaranteed bill or guaranteed saving over Luna. Image tokens, conversation length, reasoning, and caching also affect costs. Recheck the linked provider prices before use.
+
+1. Save your **OpenRouter** key using the connection steps above. For an initial trial, optionally set a **$1 key limit** in [OpenRouter's key settings](https://openrouter.ai/settings/keys); LucentCue does not configure that limit.
+2. In the full workspace below the composer, select **Bring your key**, choose **AI provider → OpenRouter**, then select **DeepSeek V4.1 Flash · vision** with the exact model ID above. Mode, provider, and model choices save immediately.
+3. Capture a screenshot, review it, type your question, and send. **Bring your key** here uses your OpenRouter key and credits; it does not require a separate DeepSeek or OpenAI key. Switch back to **Free** whenever you want the zero-price catalog.
+
+Use **New conversation** for each unrelated image: follow-ups resend the active conversation, including earlier screenshots. For shorter answers, ask “Give the answer first, followed by a brief explanation. Say if any text is unreadable.” You can append this preference under **Settings → Workspace → Advanced instructions** while preserving the existing safety instructions. A concise prompt is a preference, not a billing cap: LucentCue has no hard output-token, reasoning-effort, or paid-spend controls.
+
 ## Shortcuts and everyday controls
 
 | Action | Default | Scope |

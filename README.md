@@ -63,6 +63,8 @@ There are no live model completions without a valid key. Keys are entered locall
 
 **Free refers to eligible model inference, not unlimited usage.** OpenRouter quotas, account policies, provider capacity, and model availability still apply. LucentCue rechecks zero pricing before each free request and reports errors instead of switching to a paid model. Bring-your-key mode may incur provider charges. [OpenRouter's limits](https://openrouter.ai/docs/api_reference/limits) apply independently of LucentCue.
 
+For a budget starting point for paid screenshot questions, use **Bring your key → OpenRouter** and select **DeepSeek V4.1 Flash** (`deepseek/deepseek-v4.1-flash`, marked **vision**). This uses your OpenRouter key and credits. The [paid image-question setup](docs/GETTING_STARTED.md#paid-openrouter-for-screenshot-questions) covers provider-dependent pricing, an optional key budget, a GPT alternative, and context costs. LucentCue currently has no provider-price selection or hard output-token, reasoning, or paid-spend controls.
+
 ## Shortcuts and browser help
 
 | Action | Default |
