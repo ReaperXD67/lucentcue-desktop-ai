@@ -702,6 +702,20 @@ try {
   const modelPicker = renderer.getByRole('combobox', { name: 'AI model', exact: true });
   const modelSearch = renderer.getByRole('combobox', { name: 'Search models', exact: true });
   const modelList = renderer.getByRole('listbox', { name: 'Available AI models', exact: true });
+  async function expectModelOptionCount(expected: number) {
+    // A native popover becomes visible before its asynchronous toggle event
+    // commits React's open state and mounts the option rows. Query/filter actions
+    // may also be no-ops, so wait for the actual accessible result, not the click.
+    await renderer!.waitForFunction((count) => {
+      const picker = document.querySelector('[role="combobox"][aria-label="AI model"]');
+      const list = document.querySelector('[role="listbox"][aria-label="Available AI models"]');
+      return (
+        picker?.getAttribute('aria-expanded') === 'true' &&
+        list?.querySelectorAll('[role="option"]').length === count
+      );
+    }, expected);
+    assert.equal(await modelList.getByRole('option').count(), expected);
+  }
   const deepseekModel = 'deepseek/deepseek-v4.1-flash';
   const deepseekName = 'DeepSeek: DeepSeek V4.1 Flash';
   await modelPicker.click();
@@ -711,16 +725,16 @@ try {
   );
   assert.equal(await modelSearch.evaluate((element) => document.activeElement === element), true);
   await modelSearch.fill('DeepSeek V4.1');
-  assert.equal(await modelList.getByRole('option').count(), 1);
+  await expectModelOptionCount(1);
   await modelList.getByText(deepseekModel, { exact: true }).waitFor();
   await modelList.getByText('Images', { exact: true }).waitFor();
   await modelSearch.fill('fixture/text-only');
-  assert.equal(await modelList.getByRole('option').count(), 1);
+  await expectModelOptionCount(1);
   await modelList.getByText('Fixture: Text-only model', { exact: true }).waitFor();
   assert.equal(await modelList.getByText('Images', { exact: true }).count(), 0);
   await modelSearch.fill('');
   await renderer.getByRole('checkbox', { name: 'Images only', exact: true }).check();
-  assert.equal(await modelList.getByRole('option').count(), 2);
+  await expectModelOptionCount(2);
   assert.equal(await modelList.getByText('fixture/text-only', { exact: true }).count(), 0);
   await modelSearch.fill(deepseekModel);
   await modelSearch.press('ArrowDown');
@@ -753,7 +767,7 @@ try {
   );
   await modelSearch.fill('no-such-model-in-the-test-catalog');
   await renderer.getByText('No models found.', { exact: true }).waitFor();
-  assert.equal(await modelList.getByRole('option').count(), 0);
+  await expectModelOptionCount(0);
   await modelSearch.press('Escape');
   await modelList.waitFor({ state: 'hidden' });
   assert.equal(await modelPicker.evaluate((element) => document.activeElement === element), true);
@@ -793,7 +807,7 @@ try {
     await modelPicker.click();
     await modelSearch.fill('');
     await renderer.getByRole('checkbox', { name: 'Images only', exact: true }).uncheck();
-    assert.equal(await modelList.getByRole('option').count(), 35);
+    await expectModelOptionCount(35);
     const popupBounds = await modelSearch.evaluate((element) => {
       const popup = element.closest<HTMLElement>('[popover]');
       if (!popup) throw new Error('Model search must be in its visible popover.');
@@ -919,7 +933,7 @@ try {
       .waitFor();
     await modelPicker.click();
     await renderer.getByText('No models available.', { exact: true }).waitFor();
-    assert.equal(await modelList.getByRole('option').count(), 0);
+    await expectModelOptionCount(0);
     assert.equal(await modelList.getByText(deepseekModel, { exact: true }).count(), 0);
     assert.equal((await readState()).settings.model, 'gemini-2.5-flash');
     await modelSearch.press('Escape');
