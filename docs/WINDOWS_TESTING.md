@@ -2,6 +2,12 @@
 
 This record separates source/release checks, tests of an installed application, and live provider access. **0.2.0 is published after successful source tests, cross-platform CI, native packaging, and asset verification.** Windows Application Control blocked the downloaded CI installer on the tested PC before it started, so 0.1.1 remains installed and installed 0.2.0 behavior is unverified. No personal model key was supplied.
 
+## 0.2.2 source: shortcut attachment visibility
+
+[CI passed on all three platforms](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39118092268) at `7cde857`, including 96 default automated tests and **22 Windows Electron desktop checks**. The new regression injects a known harmless 1 × 1 PNG through the main-process capture-delivery event in an isolated profile. At a 900 × 720 workspace, it first verifies that Settings/Browser hides the composer, then checks that capture closes either panel, renders the preview, focuses the visible text box, preserves existing draft/attachments, and does not increment mocked completion requests. It does not capture the user's desktop, clipboard, or a real model response.
+
+The fix and actual SignPath application field guide are pushed in source. The existing 0.2.1 release assets are unchanged and do not contain this fix. No newer package was installed, no signing approval was obtained, and the current PC remains on 0.1.1. Preparing the SignPath form is separate from its owner's submission and the Foundation's eligibility decision.
+
 ## 0.2.1 appearance and signing preparation
 
 The source adds Dark, Light, and Follow system themes, persisted companion opacity, and the actual application version. All **105 automated tests passed with real headed Chromium enabled**; default CI runs 96 tests and skips nine optional browser checks. Formatting, typecheck, production build, and the production dependency audit passed with zero reported vulnerabilities. Browser-preview visual inspection covered the 480 × 380 dark companion and both color palettes in the workspace; this does not establish native opacity behavior.
