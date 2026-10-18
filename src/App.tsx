@@ -130,6 +130,7 @@ export default function App() {
   useEffect(
     () =>
       api.onCapture((attachment) => {
+        setPanel(null);
         setAttachments((items) => {
           if (items.length >= 3) {
             setNotice(
@@ -140,7 +141,9 @@ export default function App() {
           setNotice('Screenshot attached. Review it before sending.');
           return [...items, attachment];
         });
-        composerRef.current?.focus();
+        // Narrow workspaces hide the composer while a side panel is open.
+        // Wait for that panel to close before returning keyboard focus.
+        requestAnimationFrame(() => composerRef.current?.focus());
       }),
     [],
   );

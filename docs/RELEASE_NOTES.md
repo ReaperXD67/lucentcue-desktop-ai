@@ -1,5 +1,11 @@
 # LucentCue preview notes
 
+## 0.2.2 — screenshot delivery fix, source preview
+
+Shortcut-delivered screenshots now close an overlapping Settings/Browser panel and focus the composer after it becomes visible. This fixes narrow workspaces where the image attached correctly but its preview and text box stayed hidden. Draft text and existing attachments are preserved; capture does not submit a question. A harmless 1 × 1 PNG desktop regression exercises both panels without taking a real screenshot or making a provider request. Formatting, typecheck, build, and 96 default automated tests pass; hosted native validation is pending.
+
+The [SignPath guide](SIGNING.md) now records the actual application fields, prepared public project details, owner consent/submission steps, and signing-to-installation workflow. The application has not been submitted or approved. No signing certificate or undetectable-capture capability is claimed. The published 0.2.1 packages remain unchanged.
+
 ## 0.2.1 — appearance and signing preparation
 
 Published as [v0.2.1-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1), with all five unsigned native packages and `SHA256SUMS.txt`. Trusted signing and installation on the tested PC remain pending.

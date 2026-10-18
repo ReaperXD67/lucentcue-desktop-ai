@@ -4,7 +4,7 @@
 
 An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Keep a small companion one shortcut away, open the full workspace when you need it, and choose exactly what you send to your own OpenRouter, OpenAI, or Gemini account.
 
-**0.2.1 developer preview · MIT · Electron + React + TypeScript.** [Download the preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1) for Windows, macOS, and Linux, with SHA-256 checksums. Packages are unsigned. Application Control blocked the previous 0.2.0 installer on the tested PC, which remains on 0.1.1; a trusted signed upgrade is still pending. See [release status](#release-status), [signing setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
+**0.2.2 source preview · MIT · Electron + React + TypeScript.** The [published 0.2.1 preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1) has Windows, macOS, and Linux packages with SHA-256 checksums. Packages are unsigned. Application Control blocked the previous 0.2.0 installer on the tested PC, which remains on 0.1.1; a trusted signed upgrade is still pending. See [release status](#release-status), [signing application and setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
 
 For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md). [Windows testing](docs/WINDOWS_TESTING.md) records actual installation results separately from capture/privacy checks and live model access.
 
@@ -17,7 +17,7 @@ For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md)
 - Shares the active conversation, draft, and attachments between companion and workspace; streams Markdown answers with a Stop button.
 - Offers a **Free** mode restricted to currently verified zero-price OpenRouter models, with no automatic paid fallback.
 - Connects your own OpenRouter, OpenAI, and Gemini keys through Settings.
-- Captures a display from the UI or a configurable shortcut, then lets you preview or remove the screenshot before sending it to a vision model.
+- Captures a display from the UI or a configurable shortcut and attaches it directly to the composer for preview/removal before sending it to a vision model.
 - Opens a visible Chromium browser, reads page context for review, and fills a selected text field with text you approve. You submit in the browser.
 - Provides configurable show/hide and screenshot shortcuts, optional always-on-top, an optional tray icon, and Markdown export.
 - Offers optional OS capture protection on Windows/macOS, with clear platform limitations.
@@ -120,6 +120,8 @@ No release currently carries a LucentCue publisher signature. A free SignPath Fo
 The manual **Attach packages to draft preview** workflow transfers verified successful native-build artifacts and SHA-256 checksums to an existing draft prerelease. It keeps the release unpublished for maintainer review; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Release status
+
+0.2.2 source fixes a narrow-workspace capture bug: shortcut screenshots close an overlapping Settings/Browser panel, expose the composer, and return keyboard focus while retaining the draft and existing attachments. A harmless synthetic-image desktop regression covers both panels without taking a desktop screenshot or sending a model request. This fix is not in the published 0.2.1 packages. The [signing guide](docs/SIGNING.md) now maps the actual application fields and owner submission steps; the project form is prepared, not submitted or approved.
 
 0.2.1 passed **105 automated tests with real headed Chromium enabled** and [CI on Windows, macOS, and Linux](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117067053), including **21 Windows Electron smoke checks**. Native checks verify theme saving, simulated system-color changes, persisted appearance, companion opacity, an opaque workspace, and the actual startup version. [Native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117090507) and [asset/checksum verification](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39117292327) passed at `b177ef7`. All five unsigned packages and checksums are [published](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1). Installed 0.2.1 behavior and trusted signing remain pending. The evidence below describes the earlier 0.2.0 source and packages.
 

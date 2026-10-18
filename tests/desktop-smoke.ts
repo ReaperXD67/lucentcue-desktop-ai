@@ -772,6 +772,64 @@ try {
     scale: 'css',
   });
   checked('Compact workspace fits at 900 × 720');
+
+  // Exercise the global-capture delivery path with a known harmless image;
+  // this never captures the desktop, writes the clipboard, or submits a prompt.
+  const captureDraft = 'Keep this draft and my existing screenshot attachments.';
+  await composer.fill(captureDraft);
+  const completionCountBeforeCapture = await application.evaluate(
+    'globalThis.__lucentcueSmokeRequests.completions',
+  );
+  const syntheticImage =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+  async function deliverCapture(id: string) {
+    await application!.evaluate(
+      ({ BrowserWindow }, attachment) =>
+        BrowserWindow.getAllWindows()[0].webContents.send('app:captured', attachment),
+      { id, name: `${id}.png`, dataUrl: syntheticImage },
+    );
+  }
+  await deliverCapture('existing-synthetic-capture');
+  await renderer.getByRole('button', { name: 'Remove existing-synthetic-capture.png' }).waitFor();
+  await renderer.waitForFunction(() => {
+    const image = document.querySelector<HTMLImageElement>('.attachment img');
+    return image?.complete && image.naturalWidth === 1 && image.naturalHeight === 1;
+  });
+  for (const [index, panel] of ['Settings', 'Browser assist'].entries()) {
+    await renderer.getByRole('button', { name: panel, exact: true }).click();
+    await renderer.waitForFunction(
+      () => getComputedStyle(document.querySelector('.chat-workspace')!).display === 'none',
+    );
+    const id = `panel-synthetic-capture-${index}`;
+    await deliverCapture(id);
+    await renderer.getByRole('button', { name: `Remove ${id}.png`, exact: true }).waitFor();
+    await renderer.waitForFunction(() => {
+      const composer = document.getElementById('message-input');
+      return (
+        document.activeElement === composer &&
+        getComputedStyle(document.querySelector('.chat-workspace')!).display !== 'none'
+      );
+    });
+    assert.equal(await composer.inputValue(), captureDraft);
+    assert.equal(
+      await renderer.getByRole('img', { name: 'Screenshot preview' }).count(),
+      index + 2,
+    );
+    assert.equal(
+      await renderer.getByRole('button', { name: 'Remove existing-synthetic-capture.png' }).count(),
+      1,
+    );
+    assert.equal(await renderer.locator('.settings-panel, .browser-panel').count(), 0);
+  }
+  assert.equal(
+    await application.evaluate('globalThis.__lucentcueSmokeRequests.completions'),
+    completionCountBeforeCapture,
+  );
+  await renderer.getByRole('button', { name: /^New conversation/ }).click();
+  assert.equal(await renderer.getByRole('img', { name: 'Screenshot preview' }).count(), 0);
+  checked(
+    'Capture delivery closes either narrow workspace panel, focuses the composer, preserves drafts and attachments, and never sends',
+  );
   assert.deepEqual(pageErrors, [], 'The renderer must not emit uncaught JavaScript errors.');
   assert.equal((await readState()).settings.saveHistory, false);
   console.log(
