@@ -1,14 +1,14 @@
 # Get started with LucentCue on Windows
 
-Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.1 preview includes a compact companion, a full workspace, and appearance controls; source, package, and installation results are recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied during testing, so live model answers have not been verified.
+Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.2 preview includes a compact companion, a full workspace, and direct appearance controls; source, package, and installation results are recorded in [WINDOWS_TESTING.md](WINDOWS_TESTING.md). No personal key was supplied during testing, so live model answers have not been verified.
 
 ## Install or upgrade
 
-Download the Windows installer and `SHA256SUMS.txt` from the [0.2.1 preview release](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.1-preview.1). The installer is unsigned. On a device whose policy permits installation, open LucentCue from the Start menu afterwards. Installed users do not need Node.js, npm, or a source checkout.
+Download the Windows installer and `SHA256SUMS.txt` from the [0.2.2 preview release](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.2-preview.1). The installer is unsigned. On a device whose policy permits installation, open LucentCue from the Start menu afterwards. Installed users do not need Node.js, npm, or a source checkout.
 
-On 18 October 2026, the official checksum-verified 0.2.1 Windows installer completed with exit code 0 on the tested PC. The installed executable reports `0.2.1.0`, opens the dark compact companion, and has a **LucentCue** desktop shortcut. Open that shortcut or **Start → LucentCue**. Actual installed **Alt+W** hide/restore and **Alt+Shift+S** screenshot attachment preview/removal passed; no question was sent. Detailed results are recorded in [Windows testing](WINDOWS_TESTING.md).
+On 18 October 2026, the official checksum-verified 0.2.2 Windows installer completed with exit code 0 on the tested PC. The installed executable reports `0.2.2.0` and opens the compact companion. Open the **LucentCue** desktop shortcut or **Start → LucentCue**. Actual installed theme switching, 85% companion opacity, solid workspace, **Alt+W** hide/restore with the tray off, and the configured capture shortcut's attachment preview/removal passed; no question was sent. Existing custom shortcuts are preserved. Detailed results are recorded in [Windows testing](WINDOWS_TESTING.md).
 
-Windows had refused the earlier 0.2.0 installer with **“An Application Control policy has blocked this file.”** The later 0.2.1 package was accepted without changing security policy, trust stores, file metadata, or its published filename. It remains unsigned; this outcome does not guarantee acceptance on other devices. If a device refuses an installer, obtain a build signed by a certificate trusted by its policy or administrator-approved deployment.
+Windows had refused the earlier 0.2.0 installer with **“An Application Control policy has blocked this file.”** The later official 0.2.1 and 0.2.2 packages were accepted without changing security policy, trust stores, file metadata, or their published filenames. They remain unsigned; this outcome does not guarantee acceptance on other devices. If a device refuses an installer, obtain a build signed by a certificate trusted by its policy or administrator-approved deployment.
 
 The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. For an upgrade, use **Quit LucentCue** in the app or tray menu first, then run the newer official installer and choose the same installation location. There is no automatic updater. If local history matters to you, export the conversations you want to keep before changing versions.
 
@@ -16,7 +16,7 @@ The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. Fo
 
 LucentCue starts as a small companion for questions and answers. Select its **Settings** button to open the full workspace and Settings. The full workspace contains connection setup, model selection, history controls, browser assistance, and exports. Return to the companion when you want a smaller window. Both views share the active conversation, unsent draft, and attachments; switching views does not send a message.
 
-### Appearance in 0.2.2 source
+### Appearance
 
 The header's **sun/moon button** switches immediately between Dark and Light and saves the choice in both the companion and workspace. **Follow system** remains available in **Settings → Appearance**. Dark is the default.
 
@@ -24,9 +24,9 @@ For translucency, open **Settings → Appearance**, set **Companion opacity**, a
 
 Appearance is saved separately from Workspace changes. If you have an unsaved shortcut, pin, privacy, or other Workspace change, save it with **Save settings** before using **Save & preview companion**; preview is disabled until then so those drafts are not discarded. You can still use **Save appearance** or the header theme button without saving unrelated edits.
 
-These simpler appearance controls are in 0.2.2 source; its CI, native packages, and installation are pending. The installed 0.2.1 preview instead uses **Settings → Appearance → Save settings**, then **Companion** to see opacity. It has no header theme button. Native opacity adjustment on that installed copy remains unverified; see [Windows testing](WINDOWS_TESTING.md) for exact-version evidence.
+These controls are included in the published and installed 0.2.2 preview. The actual installed Windows app passed sun/moon switching and saving/previewing 85% companion opacity while the full workspace stayed solid. Older 0.2.1 uses **Settings → Appearance → Save settings**, then **Companion** to see opacity, and has no header theme button; upgrade for the simpler controls.
 
-For free trusted Windows signing, the owner reports having submitted the [SignPath application](SIGNING.md); approval, pipeline setup, and a signed installer remain pending. The successful unsigned 0.2.1 installation is separate from that signing work.
+For free trusted Windows signing, the owner reports having submitted the [SignPath application](SIGNING.md); approval, pipeline setup, and a signed installer remain pending. The successful unsigned 0.2.2 installation is separate from that signing work.
 
 ## Connect your personal OpenRouter key
 
@@ -61,7 +61,7 @@ Turn **Settings → Workspace → Show tray icon** off and select **Save setting
 
 Use the screenshot button or capture shortcut, select a display if asked, and review its attachment thumbnail. Remove it with its **X** before sending if it contains anything private. Choose a model marked **vision**. Capturing alone does not send the image; sending a message does. Images are omitted from saved history and Markdown exports.
 
-The global shortcut restores LucentCue and attaches the screenshot directly to the text box area; type your question beside it and select **Send**. Up to three screenshots can be attached. LucentCue briefly hides its own window before capture so its UI is omitted from that image. The capture path uses an in-memory image, without writing an image file or placing it on the clipboard. This does not make capture undetectable to the operating system or monitoring software, and OS prompts or indicators may still appear. In 0.2.2 source, shortcut delivery also closes an overlapping Settings/Browser panel and focuses the composer; that narrow-window fix is not in the published 0.2.1 packages yet.
+The global shortcut restores LucentCue and attaches the screenshot directly to the text box area; type your question beside it and select **Send**. Up to three screenshots can be attached. LucentCue briefly hides its own window before capture so its UI is omitted from that image. The capture path uses an in-memory image, without writing an image file or placing it on the clipboard. This does not make capture undetectable to the operating system or monitoring software, and OS prompts or indicators may still appear. In 0.2.2, shortcut delivery also closes an overlapping Settings/Browser panel and focuses the composer so the attachment can be reviewed immediately.
 
 In **Browser assist**, select **Set up assistant browser** once to download optional Chromium. This uses the bundled desktop runtime. Open a website, select its tab in the visible Chromium window, and choose **Read page**. Review the text, then **Attach to question** if you want it sent with your message. To write into a page, choose a supported field, review the exact text, and select **Fill selected field**. You submit in Chromium. Website input events may save drafts or trigger site behavior. See [browser boundaries](BROWSER.md).
 

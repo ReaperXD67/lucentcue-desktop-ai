@@ -1,20 +1,42 @@
 # Windows installation and privacy test record
 
-This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.1 Windows preview is now installed; native Alt+W hide/restore and Alt+Shift+S screenshot preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, personal OpenRouter key setup, and live answers remain pending. External recording privacy was not retested on the installed package.
+This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.2 Windows preview is installed; direct Dark/Light switching, 85% companion opacity, Alt+W hide/restore with the tray off, and the configured screenshot shortcut's preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, personal OpenRouter key setup, and live answers remain pending. External recording privacy and browser runtime were not retested on the installed 0.2.2 package.
 
-## 0.2.2 source: direct appearance controls and shortcut attachment visibility
+## 0.2.2: direct appearance controls and shortcut attachment visibility
 
 The header now has an immediate, persisted Dark/Light switch in companion and workspace. Settings separates **Save appearance** from **Save settings** and offers **Save & preview companion**. Preview is disabled while unrelated Workspace drafts are unsaved, so changing views cannot discard them. Appearance-only saves and the header toggle preserve those drafts. The opacity range remains 85–100% for the whole companion on Windows/macOS; the full workspace remains at native opacity 1. Linux and browser previews stay solid.
 
 The earlier opacity implementation already called the native API for companion mode and restored full opacity in workspace mode. The new controls address the confusing workflow where a slider draft had to be saved below the section while the visible workspace intentionally stayed solid; no native-opacity defect has been reproduced.
 
-Current formatting, type checks, **96 default automated tests**, production build, and **26 local Windows Electron checks** passed. The isolated-profile suite verifies immediate theme persistence, unrelated draft preservation, independent appearance saves, normalized shortcut reconciliation, companion preview, native opacity near 0.85 across hide/show and reload, workspace opacity 1, and real failed-save rollback/retry. The failed-save case only obstructs an atomic-write target inside the temporary test profile, then restores it; no user profile or permissions are changed. Optional real screenshot/browser paths were disabled in this run. CI and native packages for these appearance changes are pending; no installed 0.2.2 result is claimed.
+Formatting, type checks, **96 default automated tests**, production build, and **26 local Windows Electron checks** passed. The isolated-profile suite verifies immediate theme persistence, unrelated draft preservation, independent appearance saves, normalized shortcut reconciliation, companion preview, native opacity near 0.85 across hide/show and reload, workspace opacity 1, and real failed-save rollback/retry. The failed-save case only obstructs an atomic-write target inside the temporary test profile, then restores it; no user profile or permissions are changed. Optional real screenshot/browser paths were disabled in this source-suite run; actual installed screenshot checks are separate below.
 
-Earlier [CI passed on all three platforms](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39122073154) at screenshot-fix commit `e4d73fa`, including 96 default automated tests and **22 Windows Electron desktop checks**. The capture regression injects a known harmless 1 × 1 PNG through the main-process capture-delivery event in an isolated profile. At a 900 × 720 workspace, it verifies that Settings/Browser hides the composer, then checks that capture closes either panel, renders the preview, focuses the visible text box, preserves existing draft/attachments, and does not increment mocked completion requests. It does not capture the user's desktop, clipboard, or a real model response. That CI result predates the direct appearance controls.
+[CI passed on Windows, macOS, and Linux](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39123365729), including **26 Windows Electron desktop checks**, at source `d936e31f1ddba76f91931fb118e72ff630915a2e`. Matching-source [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39123368696) passed on all three platforms; [asset verification](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39123563024) passed for all five packages and `SHA256SUMS.txt`. The preview is published as [v0.2.2-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.2-preview.1). macOS/Linux packaging does not establish desktop runtime behavior; those runtimes remain unverified.
 
-The existing 0.2.1 release assets are unchanged and do not contain the new appearance actions or screenshot-panel fix; the installed PC is on that 0.2.1 package. Its appearance controls still use **Save settings**, followed by **Companion** to see opacity. The tray icon is a separate preference: turn **Show tray icon** off and save Workspace settings. `Alt+W` hides the window but keeps the app running; neither action conceals its process from Task Manager.
+The capture regression injects a known harmless 1 × 1 PNG through the main-process capture-delivery event in an isolated profile. At a 900 × 720 workspace, it verifies that Settings/Browser hides the composer, then checks that capture closes either panel, renders the preview, focuses the visible text box, preserves existing draft/attachments, and does not increment mocked completion requests. It does not capture the user's desktop, clipboard, or a real model response.
+
+The tray icon is a separate preference: turn **Show tray icon** off and select **Save settings**. `Alt+W` hides the window but keeps the app running; neither action conceals its process from Task Manager. The published 0.2.1 and 0.2.0 assets remain unchanged; their results below are historical.
 
 No signing approval was obtained. On 18 October 2026, the owner reported successful SignPath application submission. This report is separate from a verified receipt or the Foundation's eligibility decision.
+
+### Installed 0.2.2 checks — 18 October 2026
+
+| Check | Observed result |
+| --- | --- |
+| Official Windows installer | `LucentCue.Setup.0.2.2.exe`, 117,816,774 bytes |
+| Installer SHA-256 | `5bbf53f1db2b5b7dfd54771a6edc08e12d2208f06f69858091aa13af077115e1`; matches downloaded release manifest and GitHub asset digest |
+| Normal per-user upgrade | Official installer `/S` completed with exit code 0; product version `0.2.2.0`, file version `0.2.2` |
+| Authenticode | `NotSigned`; successful installation does not establish trusted signing |
+| Actual installed theme toggle | Sun switched Dark → Light, then Moon switched Light → Dark; the unsent draft remained intact during both actions |
+| Actual installed companion opacity | Saved 85% through **Save & preview companion**; the 480 × 380 companion visibly became translucent |
+| Saved preference and full workspace | Reopened Settings showed 85% with **Save appearance** disabled, and the 1240 × 820 workspace remained solid |
+| Existing preferences after upgrade | `Alt+W`, custom `Alt+S` capture binding, and tray icon off were retained |
+| Actual global `Alt+W`, tray off | Native keypresses from an owned Calculator window hid and restored the same installed companion window |
+| Actual custom `Alt+S` screenshot | Native keypress captured and attached a real screenshot; its preview appeared, removal succeeded, the draft remained intact, and no Send/model request occurred |
+| Final app preferences | Dark, companion opacity 85%, tray icon off |
+| Live model answers | Not tested; no personal provider key supplied |
+| Installed browser runtime and external recording privacy | Not retested for 0.2.2; older source evidence is separate |
+
+The owned Calculator window was closed after testing. Preferences survived the upgrade; an in-memory unsent draft was manually restored through the UI after the normal Quit/install/relaunch sequence, then preserved during theme, mode, and screenshot checks. This does not claim automatic draft recovery across application restarts. No personal draft text, key, or captured screenshot is included in public evidence, and no captured image was sent to a provider.
 
 ## 0.2.1 appearance and signing preparation
 
@@ -43,7 +65,7 @@ The [signing guide](SIGNING.md) records an owner-reported submitted application,
 | Personal OpenRouter key and live free-model answer | Not configured/tested; Settings has OpenRouter selected and reports no saved key; owner key entry remains pending |
 | Installed opacity, browser assistance, and external recording privacy | Not tested; source evidence below remains separate |
 
-The native shortcut tests used a fresh, owned Calculator window as the foreground target and closed it afterwards. No personal key, history contents, or screenshot image was included in public evidence, and no captured image was sent to a provider. The 0.2.2 source-only fix that reveals shortcut attachments beneath overlapping Settings/Browser panels is not in this installed 0.2.1 package. The release assets remain unchanged.
+Those historical shortcut tests used a fresh, owned Calculator window as the foreground target and closed it afterwards. No personal key, history contents, or screenshot image was included in public evidence, and no captured image was sent to a provider. The later 0.2.2 appearance controls and shortcut-panel fix are not in that 0.2.1 package. Its release assets remain unchanged.
 
 ## Published 0.1.0 baseline
 
@@ -123,7 +145,7 @@ The Windows CI job passed `npm run test:desktop` after building, using its isola
 
 ## Installed 0.1.1 baseline results
 
-These are historical checks of the earlier 0.1.1 installation, which used `Alt+R`; the current installed 0.2.1 checks above use `Alt+W`. Preserve exact-version evidence without personal keys, prompts, browsing sessions, or other private content. Use `%LOCALAPPDATA%`/`%APPDATA%` in public paths rather than a person's Windows account name.
+These are historical checks of the earlier 0.1.1 installation, which used `Alt+R`; the current installed 0.2.2 checks above use `Alt+W`. Preserve exact-version evidence without personal keys, prompts, browsing sessions, or other private content. Use `%LOCALAPPDATA%`/`%APPDATA%` in public paths rather than a person's Windows account name.
 
 | Check | Observed result |
 | --- | --- |
