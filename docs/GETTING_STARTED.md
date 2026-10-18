@@ -16,9 +16,15 @@ The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. Fo
 
 LucentCue starts as a small companion for questions and answers. Select its **Settings** button to open the full workspace and Settings. The full workspace contains connection setup, model selection, history controls, browser assistance, and exports. Return to the companion when you want a smaller window. Both views share the active conversation, unsent draft, and attachments; switching views does not send a message.
 
-### Appearance in 0.2.1
+### Appearance in 0.2.2 source
 
-Open **Settings → Appearance** and choose **Dark**, **Light**, or **Follow system**, then select **Save settings**. Dark is the default, including when upgrading older settings. Windows/macOS builds allow **Companion opacity** from 85–100%; this fades the entire small window, including its text. The full workspace always stays solid. Linux and browser previews do not support this opacity control. These controls are included in the installed 0.2.1 preview; native opacity adjustment on this installed copy remains unverified.
+The header's **sun/moon button** switches immediately between Dark and Light and saves the choice in both the companion and workspace. **Follow system** remains available in **Settings → Appearance**. Dark is the default.
+
+For translucency, open **Settings → Appearance**, set **Companion opacity**, and select **Save & preview companion**. This saves only appearance and opens the small window so you can see the effect. **Save appearance** saves the same preferences without leaving Settings. Windows/macOS allow 85–100% whole-window opacity: 85% is gently translucent; 100% is solid. Text fades with the window. The full workspace stays solid, so dragging the slider while editing Settings does not fade that view. Linux and browser previews do not support opacity.
+
+Appearance is saved separately from Workspace changes. If you have an unsaved shortcut, pin, privacy, or other Workspace change, save it with **Save settings** before using **Save & preview companion**; preview is disabled until then so those drafts are not discarded. You can still use **Save appearance** or the header theme button without saving unrelated edits.
+
+These simpler appearance controls are in 0.2.2 source; its CI, native packages, and installation are pending. The installed 0.2.1 preview instead uses **Settings → Appearance → Save settings**, then **Companion** to see opacity. It has no header theme button. Native opacity adjustment on that installed copy remains unverified; see [Windows testing](WINDOWS_TESTING.md) for exact-version evidence.
 
 For free trusted Windows signing, the owner reports having submitted the [SignPath application](SIGNING.md); approval, pipeline setup, and a signed installer remain pending. The successful unsigned 0.2.1 installation is separate from that signing work.
 
@@ -49,7 +55,7 @@ Change the two global shortcuts in **Settings → Workspace**, then select **Sav
 
 The titlebar **X** hides the window; **−** minimizes it. Click the tray icon to show/hide it, or use the tray menu's **Open companion**, **Open workspace**, **Take screenshot**, and **Quit LucentCue**. The pin button or **Keep window on top** setting controls topmost behavior. On Windows, pinning uses a level above the taskbar because the default floating level could immediately lose native topmost status on the tested system.
 
-Turn **Show tray icon** off in Settings if you want less notification-area clutter. Keep your show/hide shortcut available, or launch LucentCue from Start to reopen it. **Quit LucentCue** in the app exits even when the tray icon is off. This setting does not conceal the app from Task Manager, process lists, or operating-system monitoring.
+Turn **Settings → Workspace → Show tray icon** off and select **Save settings** if you want less notification-area clutter. `Alt+W` hides the window; it does not quit the running app or remove its tray icon by itself. Keep your configured show/hide shortcut available, or launch LucentCue from Start to reopen it. **Quit LucentCue** in the app exits even when the tray icon is off. This setting does not conceal the app from Task Manager, process lists, or operating-system monitoring.
 
 ## Screenshots and browser assistance
 

@@ -24,6 +24,7 @@ import {
   Leaf,
   LoaderCircle,
   MessageSquare,
+  Moon,
   Maximize2,
   Minimize2,
   Minus,
@@ -35,6 +36,7 @@ import {
   ShieldCheck,
   Sparkles,
   Square,
+  Sun,
   X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -86,6 +88,11 @@ export default function App() {
   const [showDown, setShowDown] = useState(false);
   const [modelRetry, setModelRetry] = useState(0);
   const [modeBusy, setModeBusy] = useState(false);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark');
+  const settingsRef = useRef<Settings>(DEFAULT_SETTINGS);
+  const settingsQueue = useRef<Promise<void>>(Promise.resolve());
+  const pendingSettings = useRef(0);
   const activeRequest = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -99,8 +106,10 @@ export default function App() {
   useEffect(() => {
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
     const applyTheme = () => {
-      document.documentElement.dataset.theme =
+      const nextTheme =
         settings.theme === 'system' ? (systemTheme.matches ? 'dark' : 'light') : settings.theme;
+      document.documentElement.dataset.theme = nextTheme;
+      setResolvedTheme(nextTheme);
     };
     applyTheme();
     systemTheme.addEventListener('change', applyTheme);
@@ -111,6 +120,7 @@ export default function App() {
     try {
       setLoadError('');
       const next = await api.getState();
+      settingsRef.current = next.settings;
       setState(next);
       setConversations(next.conversations);
       if (next.conversations[0]) {
@@ -238,9 +248,34 @@ export default function App() {
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'instant' });
   }, [messages]);
 
-  async function saveSettings(next: Settings) {
-    const saved = await api.saveSettings(next);
-    setState((current) => current && { ...current, settings: saved });
+  async function saveSettings(patch: Partial<Settings>): Promise<Settings> {
+    pendingSettings.current += 1;
+    setSettingsBusy(true);
+    const work = settingsQueue.current.then(async () => {
+      const saved = await api.saveSettings({ ...settingsRef.current, ...patch });
+      settingsRef.current = saved;
+      setState((current) => current && { ...current, settings: saved });
+      return saved;
+    });
+    settingsQueue.current = work.then(
+      () => undefined,
+      () => undefined,
+    );
+    try {
+      return await work;
+    } finally {
+      pendingSettings.current -= 1;
+      setSettingsBusy(pendingSettings.current > 0);
+    }
+  }
+  async function toggleTheme() {
+    if (pendingSettings.current > 0) return;
+    setNotice('');
+    try {
+      await saveSettings({ theme: resolvedTheme === 'dark' ? 'light' : 'dark' });
+    } catch (error) {
+      setNotice(`Could not change theme. ${errorText(error)}`);
+    }
   }
   async function switchWindowMode(mode: WindowMode, nextPanel: Panel = null) {
     if (modeBusy) return;
@@ -280,7 +315,7 @@ export default function App() {
             ? 'gemini-2.5-flash'
             : 'openrouter/free';
     try {
-      await saveSettings({ ...settings, mode, model });
+      await saveSettings({ mode, model });
     } catch (error) {
       setNotice(errorText(error));
     }
@@ -293,7 +328,7 @@ export default function App() {
           ? 'gemini-2.5-flash'
           : 'openrouter/free';
     try {
-      await saveSettings({ ...settings, provider, model });
+      await saveSettings({ provider, model });
     } catch (error) {
       setNotice(errorText(error));
     }
@@ -609,6 +644,19 @@ export default function App() {
             </div>
           )}
           <div className="window-actions">
+            <button
+              className="icon-button theme-toggle"
+              aria-label={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
+              title={`Switch to ${resolvedTheme === 'dark' ? 'light' : 'dark'} mode`}
+              disabled={settingsBusy}
+              onClick={() => void toggleTheme()}
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun size={17} aria-hidden="true" />
+              ) : (
+                <Moon size={17} aria-hidden="true" />
+              )}
+            </button>
             {companion ? (
               <>
                 <button
@@ -656,8 +704,8 @@ export default function App() {
                   aria-label="Keep window on top"
                   aria-pressed={settings.alwaysOnTop}
                   onClick={() =>
-                    void saveSettings({ ...settings, alwaysOnTop: !settings.alwaysOnTop }).catch(
-                      (error) => setNotice(errorText(error)),
+                    void saveSettings({ alwaysOnTop: !settings.alwaysOnTop }).catch((error) =>
+                      setNotice(errorText(error)),
                     )
                   }
                 >
@@ -1007,8 +1055,8 @@ export default function App() {
                         disabled={streaming || modelsBusy}
                         value={settings.model}
                         onChange={(event) =>
-                          void saveSettings({ ...settings, model: event.target.value }).catch(
-                            (error) => setNotice(errorText(error)),
+                          void saveSettings({ model: event.target.value }).catch((error) =>
+                            setNotice(errorText(error)),
                           )
                         }
                       >
@@ -1072,6 +1120,8 @@ export default function App() {
               isPreview={isPreview}
               onClose={() => setPanel(null)}
               onSave={saveSettings}
+              settingsBusy={settingsBusy}
+              onPreviewCompanion={() => switchWindowMode('companion')}
               onKey={saveKey}
               onDeleteHistory={clearHistory}
             />

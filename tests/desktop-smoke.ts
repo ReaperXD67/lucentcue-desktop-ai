@@ -1,7 +1,7 @@
 /** Real Electron smoke test. Build first: npm run build && npm run test:desktop. */
 import assert from 'node:assert/strict';
 import type { ChildProcess } from 'node:child_process';
-import { access, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rename, rm, rmdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -165,7 +165,47 @@ try {
   assert.equal(first.settings.theme, 'dark');
   assert.equal(first.settings.companionOpacity, 1);
   assert.equal(first.version, packageVersion);
+  // An installed copy may already own Alt+W. Assert the real defaults above,
+  // then reserve separate bindings for this temporary test process before any
+  // UI save (including the immediate header theme toggle).
+  const available = await application.evaluate(({ globalShortcut }) => {
+    const available: string[] = [];
+    for (const candidate of [
+      'Control+Alt+Shift+F11',
+      'Control+Alt+Shift+F10',
+      'Control+Alt+Shift+F9',
+      'Control+Alt+Shift+F8',
+    ]) {
+      if (globalShortcut.register(candidate, () => {})) {
+        available.push(candidate);
+        globalShortcut.unregister(candidate);
+      }
+    }
+    return available;
+  });
+  assert.ok(available.length >= 2, 'Two available test shortcuts are required.');
+  const initialTestSettings = await renderer.evaluate(
+    (settings) => window.desktop!.saveSettings(settings),
+    { ...first.settings, shortcut: available[0], captureShortcut: available[1] },
+  );
+  await renderer.reload();
+  await renderer.getByRole('textbox', { name: 'Message LucentCue' }).waitFor();
   await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+  await renderer.getByRole('button', { name: 'Switch to light mode', exact: true }).click();
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+  assert.equal((await readState()).settings.theme, 'light');
+  assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'light');
+  assert.equal(
+    JSON.parse(await readFile(join(profile, 'local', 'settings.json'), 'utf8')).theme,
+    'light',
+  );
+  await renderer.reload();
+  await renderer.getByRole('button', { name: 'Switch to dark mode', exact: true }).waitFor();
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+  await renderer.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+  assert.equal((await readState()).settings.theme, 'dark');
+  checked('Companion theme toggle saves immediately to disk and survives renderer reload');
   const companionDraft = 'Keep this draft when opening settings.';
   await renderer.getByRole('textbox', { name: 'Message LucentCue' }).fill(companionDraft);
   await renderer.screenshot({
@@ -208,24 +248,11 @@ try {
 
   await renderer.getByRole('button', { name: 'Settings', exact: true }).click();
   const theme = renderer.getByRole('combobox', { name: 'Theme', exact: true });
-  await theme.selectOption('light');
-  await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
-  await renderer.getByText('Settings saved.', { exact: true }).waitFor();
-  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
-  assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'light');
-
-  await theme.selectOption('system');
-  await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
-  await renderer.getByText('Settings saved.', { exact: true }).waitFor();
-  assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'system');
-  await renderer.emulateMedia({ colorScheme: 'dark' });
-  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
-  await renderer.emulateMedia({ colorScheme: 'light' });
-  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
-  checked('Light and system themes apply through saved settings and follow changing system colors');
-
-  await theme.selectOption('dark');
   const opacity = renderer.getByRole('slider', { name: 'Companion opacity', exact: true });
+  const pendingShortcut = 'Control+Alt+Shift+F12';
+  await renderer.getByLabel('Show / hide shortcut', { exact: true }).fill(pendingShortcut);
+  await renderer.getByRole('checkbox', { name: 'Keep window on top', exact: true }).check();
+  await theme.selectOption('system');
   if (first.appearanceOpacitySupported) {
     await opacity.focus();
     await opacity.press('Home');
@@ -233,23 +260,98 @@ try {
   } else {
     assert.equal(await opacity.isDisabled(), true);
   }
-  await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
-  await renderer.getByText('Settings saved.', { exact: true }).waitFor();
+  await renderer.getByRole('button', { name: 'Switch to light mode', exact: true }).click();
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+  await renderer.waitForFunction(() => {
+    const theme = document.querySelector<HTMLSelectElement>('.settings-panel select[id$="-theme"]');
+    return theme?.value === 'light';
+  });
+  assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'light');
+  assert.equal(await theme.inputValue(), 'light');
+  assert.equal(await opacity.inputValue(), first.appearanceOpacitySupported ? '85' : '100');
+  assert.equal(
+    await renderer.getByLabel('Show / hide shortcut', { exact: true }).inputValue(),
+    pendingShortcut,
+  );
+  assert.equal(
+    await renderer.getByRole('checkbox', { name: 'Keep window on top', exact: true }).isChecked(),
+    true,
+  );
+  assert.equal((await readState()).settings.shortcut, initialTestSettings.shortcut);
+  assert.equal((await readState()).settings.alwaysOnTop, false);
+  assert.equal((await readState()).settings.companionOpacity, 1);
+  checked('Workspace theme toggle synchronizes Settings without losing or saving unrelated drafts');
+
+  await theme.selectOption('system');
+  await renderer.getByRole('button', { name: 'Save appearance', exact: true }).click();
+  await renderer.getByText('Appearance saved.', { exact: true }).waitFor();
+  assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'system');
+  const savedAppearance = (await readState()).settings;
+  assert.equal(savedAppearance.shortcut, initialTestSettings.shortcut);
+  assert.equal(savedAppearance.alwaysOnTop, false);
+  assert.equal(savedAppearance.companionOpacity, first.appearanceOpacitySupported ? 0.85 : 1);
+  assert.equal(
+    await renderer.getByLabel('Show / hide shortcut', { exact: true }).inputValue(),
+    pendingShortcut,
+  );
+  assert.equal(
+    await renderer.getByRole('checkbox', { name: 'Keep window on top', exact: true }).isChecked(),
+    true,
+  );
   assert.equal(
     await application.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].getOpacity(),
     ),
     1,
   );
-  await renderer.getByRole('button', { name: 'Close settings' }).click();
-  await renderer.getByRole('button', { name: 'Companion mode', exact: true }).click();
+  await renderer.emulateMedia({ colorScheme: 'dark' });
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+  await renderer.emulateMedia({ colorScheme: 'light' });
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+  checked(
+    'Save appearance leaves workspace edits unsaved and solid; system theme follows changing colors',
+  );
+
+  assert.equal(
+    await renderer
+      .getByRole('button', { name: 'Save & preview companion', exact: true })
+      .isDisabled(),
+    true,
+  );
+  await renderer
+    .getByText(
+      'Save your workspace changes below before opening the companion. You can save appearance separately now.',
+      { exact: true },
+    )
+    .waitFor();
+  // Restore the deliberately unsaved edits before leaving Settings; preview
+  // must never dismiss a workspace draft without the user's decision.
+  await renderer
+    .getByLabel('Show / hide shortcut', { exact: true })
+    .fill(initialTestSettings.shortcut);
+  await renderer.getByRole('checkbox', { name: 'Keep window on top', exact: true }).uncheck();
+  await theme.selectOption('dark');
+  await renderer.getByRole('button', { name: 'Save & preview companion', exact: true }).click();
   await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).waitFor();
+  assert.equal((await readState()).windowMode, 'companion');
+  assert.equal((await readState()).settings.shortcut, initialTestSettings.shortcut);
+  assert.equal((await readState()).settings.alwaysOnTop, false);
   if (first.appearanceOpacitySupported) {
     const nativeOpacity = await application.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].getOpacity(),
     );
     assert.ok(Math.abs(nativeOpacity - 0.85) < 0.01, `Companion opacity was ${nativeOpacity}`);
   }
+  await renderer.evaluate(() => window.desktop!.hide());
+  assert.equal(
+    await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()),
+    false,
+  );
+  await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].show());
+  const restoredOpacity = await application.evaluate(({ BrowserWindow }) =>
+    BrowserWindow.getAllWindows()[0].getOpacity(),
+  );
+  assert.ok(Math.abs(restoredOpacity - (first.appearanceOpacitySupported ? 0.85 : 1)) < 0.01);
   await renderer.reload();
   await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).waitFor();
   const reloadedAppearance = await readState();
@@ -259,6 +361,68 @@ try {
     first.appearanceOpacitySupported ? 0.85 : 1,
   );
   await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+  checked(
+    'Save and preview opens the native translucent companion; hide/show and reload retain it',
+  );
+
+  // Make only the throwaway profile unwritable at its final atomic-rename target.
+  // Exercise a real failed IPC save without replacing application internals or
+  // changing the user's profile, permissions, security policy, or credentials.
+  const settingsPath = join(profile, 'local', 'settings.json');
+  const settingsBackup = join(profile, 'local', 'settings.appearance-smoke-backup.json');
+  const beforeFailure = (await readState()).settings;
+  await rename(settingsPath, settingsBackup);
+  try {
+    await mkdir(settingsPath);
+    await renderer.getByRole('button', { name: 'Switch to light mode', exact: true }).click();
+    await renderer
+      .getByRole('status')
+      .filter({ hasText: /app:settings/ })
+      .waitFor();
+    assert.equal(
+      await renderer.getByRole('button', { name: 'Switch to light mode', exact: true }).isEnabled(),
+      true,
+    );
+    assert.equal(await renderer.evaluate(() => document.documentElement.dataset.theme), 'dark');
+    assert.deepEqual((await readState()).settings, beforeFailure);
+    assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'dark');
+    const rejectedSave = await renderer.evaluate(async () => {
+      const state = await window.desktop!.getState();
+      try {
+        await window.desktop!.saveSettings({
+          ...state.settings,
+          theme: 'light',
+          companionOpacity: 1,
+        });
+        return false;
+      } catch {
+        return true;
+      }
+    });
+    assert.equal(rejectedSave, true);
+    assert.deepEqual((await readState()).settings, beforeFailure);
+    assert.equal(await application.evaluate(({ nativeTheme }) => nativeTheme.themeSource), 'dark');
+    const rolledBackOpacity = await application.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].getOpacity(),
+    );
+    assert.ok(Math.abs(rolledBackOpacity - (first.appearanceOpacitySupported ? 0.85 : 1)) < 0.01);
+  } finally {
+    await rmdir(settingsPath);
+    await rename(settingsBackup, settingsPath);
+  }
+  await renderer.getByRole('button', { name: 'Switch to light mode', exact: true }).click();
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+  await renderer.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+  await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+  assert.equal(
+    await renderer
+      .getByRole('status')
+      .filter({ hasText: /app:settings/ })
+      .count(),
+    0,
+  );
+  checked('A failed appearance save rolls back native theme and opacity; the toggle can retry');
+
   await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).click();
   await theme.waitFor();
   assert.equal(
@@ -270,9 +434,17 @@ try {
   if (first.appearanceOpacitySupported) {
     await opacity.focus();
     await opacity.press('End');
-    await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
-    await renderer.getByText('Settings saved.', { exact: true }).waitFor();
+    await renderer.getByRole('button', { name: 'Save appearance', exact: true }).click();
+    await renderer.getByText('Appearance saved.', { exact: true }).waitFor();
   }
+  await renderer.getByRole('heading', { name: 'Appearance', exact: true }).evaluate((heading) => {
+    heading.scrollIntoView({ block: 'start' });
+  });
+  await renderer.screenshot({
+    path: join(results, 'appearance-settings.png'),
+    animations: 'disabled',
+    scale: 'css',
+  });
   await renderer.getByRole('button', { name: 'Close settings' }).click();
   checked(
     'Appearance persists after reload; companion translucency leaves the workspace fully opaque',
@@ -310,30 +482,35 @@ try {
     false,
   );
 
-  const available = await application.evaluate(({ globalShortcut }) => {
-    const available: string[] = [];
-    for (const candidate of [
-      'Control+Alt+Shift+F11',
-      'Control+Alt+Shift+F10',
-      'Control+Alt+Shift+F9',
-      'Control+Alt+Shift+F8',
-    ]) {
-      if (globalShortcut.register(candidate, () => {})) {
-        available.push(candidate);
-        globalShortcut.unregister(candidate);
-      }
-    }
-    return available;
-  });
-  assert.ok(available.length >= 2, 'Two available test shortcuts are required.');
   await renderer.getByLabel('Show / hide shortcut', { exact: true }).fill(available[0]);
   await renderer.getByLabel('Screenshot shortcut', { exact: true }).fill(available[1]);
   await renderer.getByRole('checkbox', { name: 'Keep window on top' }).check();
+  await theme.selectOption('light');
+  if (first.appearanceOpacitySupported) {
+    await opacity.focus();
+    await opacity.press('Home');
+  }
   await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
   await renderer.getByText('Settings saved.', { exact: true }).waitFor();
   const saved = await readState();
   assert.equal(saved.settings.alwaysOnTop, true);
   assert.equal(saved.settings.saveHistory, false);
+  assert.equal(saved.settings.theme, 'dark');
+  assert.equal(saved.settings.companionOpacity, 1);
+  assert.equal(
+    await renderer.getByLabel('Show / hide shortcut', { exact: true }).inputValue(),
+    saved.settings.shortcut,
+  );
+  assert.equal(
+    await renderer.getByLabel('Screenshot shortcut', { exact: true }).inputValue(),
+    saved.settings.captureShortcut,
+  );
+  assert.equal(
+    await renderer.getByRole('button', { name: 'Save settings', exact: true }).isDisabled(),
+    true,
+  );
+  assert.equal(await theme.inputValue(), 'light');
+  assert.equal(await opacity.inputValue(), first.appearanceOpacitySupported ? '85' : '100');
   assert.ok(saved.settings.shortcut.endsWith(available[0].split('+').at(-1)!));
   const registered = await application.evaluate(
     ({ globalShortcut, BrowserWindow }, settings) => ({
@@ -351,8 +528,13 @@ try {
     );
   }
   assert.deepEqual(registered, { toggle: true, capture: true, onTop: true });
+  await theme.selectOption('dark');
+  if (first.appearanceOpacitySupported) {
+    await opacity.focus();
+    await opacity.press('End');
+  }
   checked(
-    'Settings save through real IPC, persist state, register shortcuts, and update the native window',
+    'Workspace saves normalize shortcuts and update native state without saving pending appearance',
   );
 
   await renderer.getByRole('checkbox', { name: 'Show tray icon', exact: true }).uncheck();

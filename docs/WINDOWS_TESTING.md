@@ -2,11 +2,19 @@
 
 This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.1 Windows preview is now installed; native Alt+W hide/restore and Alt+Shift+S screenshot preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, personal OpenRouter key setup, and live answers remain pending. External recording privacy was not retested on the installed package.
 
-## 0.2.2 source: shortcut attachment visibility
+## 0.2.2 source: direct appearance controls and shortcut attachment visibility
 
-[CI passed on all three platforms](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39122073154) at `e4d73fa`, including 96 default automated tests and **22 Windows Electron desktop checks**. The new regression injects a known harmless 1 × 1 PNG through the main-process capture-delivery event in an isolated profile. At a 900 × 720 workspace, it first verifies that Settings/Browser hides the composer, then checks that capture closes either panel, renders the preview, focuses the visible text box, preserves existing draft/attachments, and does not increment mocked completion requests. It does not capture the user's desktop, clipboard, or a real model response.
+The header now has an immediate, persisted Dark/Light switch in companion and workspace. Settings separates **Save appearance** from **Save settings** and offers **Save & preview companion**. Preview is disabled while unrelated Workspace drafts are unsaved, so changing views cannot discard them. Appearance-only saves and the header toggle preserve those drafts. The opacity range remains 85–100% for the whole companion on Windows/macOS; the full workspace remains at native opacity 1. Linux and browser previews stay solid.
 
-The fix and actual SignPath application field guide are pushed in source. The existing 0.2.1 release assets are unchanged and do not contain this fix; the installed PC is now on that 0.2.1 package. No signing approval was obtained. On 18 October 2026, the owner reported successful SignPath application submission. This report is separate from a verified receipt or the Foundation's eligibility decision.
+The earlier opacity implementation already called the native API for companion mode and restored full opacity in workspace mode. The new controls address the confusing workflow where a slider draft had to be saved below the section while the visible workspace intentionally stayed solid; no native-opacity defect has been reproduced.
+
+Current formatting, type checks, **96 default automated tests**, production build, and **26 local Windows Electron checks** passed. The isolated-profile suite verifies immediate theme persistence, unrelated draft preservation, independent appearance saves, normalized shortcut reconciliation, companion preview, native opacity near 0.85 across hide/show and reload, workspace opacity 1, and real failed-save rollback/retry. The failed-save case only obstructs an atomic-write target inside the temporary test profile, then restores it; no user profile or permissions are changed. Optional real screenshot/browser paths were disabled in this run. CI and native packages for these appearance changes are pending; no installed 0.2.2 result is claimed.
+
+Earlier [CI passed on all three platforms](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39122073154) at screenshot-fix commit `e4d73fa`, including 96 default automated tests and **22 Windows Electron desktop checks**. The capture regression injects a known harmless 1 × 1 PNG through the main-process capture-delivery event in an isolated profile. At a 900 × 720 workspace, it verifies that Settings/Browser hides the composer, then checks that capture closes either panel, renders the preview, focuses the visible text box, preserves existing draft/attachments, and does not increment mocked completion requests. It does not capture the user's desktop, clipboard, or a real model response. That CI result predates the direct appearance controls.
+
+The existing 0.2.1 release assets are unchanged and do not contain the new appearance actions or screenshot-panel fix; the installed PC is on that 0.2.1 package. Its appearance controls still use **Save settings**, followed by **Companion** to see opacity. The tray icon is a separate preference: turn **Show tray icon** off and save Workspace settings. `Alt+W` hides the window but keeps the app running; neither action conceals its process from Task Manager.
+
+No signing approval was obtained. On 18 October 2026, the owner reported successful SignPath application submission. This report is separate from a verified receipt or the Foundation's eligibility decision.
 
 ## 0.2.1 appearance and signing preparation
 
@@ -31,6 +39,7 @@ The [signing guide](SIGNING.md) records an owner-reported submitted application,
 | Actual global `Alt+W` hide/restore | Passed: native keypresses from an owned Calculator window hid LucentCue and restored the same companion window |
 | Installed `Alt+Shift+S` attachment preview/removal | Passed: native keypress from Calculator captured a screenshot, restored the companion, showed the attachment preview, and removal through the UI cleared it; no Send action or model request |
 | Companion Settings gear | Opened the dark 1240 × 820 full workspace with version 0.2.1 in its footer |
+| Installed tray preference | Turned **Show tray icon** off through Settings and saved; the app remains an ordinary running process |
 | Personal OpenRouter key and live free-model answer | Not configured/tested; Settings has OpenRouter selected and reports no saved key; owner key entry remains pending |
 | Installed opacity, browser assistance, and external recording privacy | Not tested; source evidence below remains separate |
 

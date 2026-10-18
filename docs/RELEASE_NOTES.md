@@ -1,12 +1,19 @@
 # LucentCue preview notes
 
-## 0.2.2 — screenshot delivery fix, source preview
+## 0.2.2 — direct appearance controls and screenshot delivery, source preview
 
-Capture focus follows React's committed layout, replacing a frame callback that could run while a side panel still hid the composer. The regression also checks a rejected fourth capture: existing images and draft stay intact, the panel closes, and the composer receives focus. Hosted revalidation passed on Windows, macOS, and Linux, including 22 Windows desktop checks.
+- A **sun/moon button** in both headers immediately switches and saves Dark/Light. Follow system remains in Settings.
+- **Save appearance** saves only theme and opacity; **Save & preview companion** also opens the small window to show the effect. Preview waits for unrelated Workspace drafts to be saved, while appearance saves and quick theme changes preserve those drafts.
+- Clearer opacity endpoints and guidance: Windows/macOS allow 85–100% opacity for the entire companion, including text. The workspace stays solid; Linux and browser previews remain solid. The native opacity behavior is unchanged; the controls now make its save-and-preview workflow explicit.
+- Settings writes are serialized and merge only the requested changes. A quick theme change cannot overwrite an unsaved shortcut, prompt, or opacity draft; failed saves retain the saved appearance and can be retried.
 
-Shortcut-delivered screenshots now close an overlapping Settings/Browser panel and focus the composer after it becomes visible. This fixes narrow workspaces where the image attached correctly but its preview and text box stayed hidden. Draft text and existing attachments are preserved; capture does not submit a question. A harmless 1 × 1 PNG desktop regression exercises both panels without taking a real screenshot or making a provider request. Formatting, typecheck, build, and 96 default automated tests pass. [CI passed on Windows, macOS, and Linux](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39122073154) at `e4d73fa`, including **22 Windows Electron desktop checks**.
+Shortcut-delivered screenshots close an overlapping Settings/Browser panel and focus the composer after it becomes visible. This fixes narrow workspaces where the image attached correctly but its preview and text box stayed hidden. Capture focus follows React's committed layout. Draft text and existing attachments are preserved, including when a fourth capture is rejected; capture does not submit a question. A harmless 1 × 1 PNG desktop regression exercises both panels without taking a real screenshot or making a provider request.
 
-The [SignPath guide](SIGNING.md) now records the actual application fields, public project draft, owner steps, and signing-to-installation workflow. On 18 October 2026, the owner reported successful application submission; approval remains pending. No signing certificate or undetectable-capture capability is claimed. The published 0.2.1 packages remain unchanged.
+Current formatting, type checks, **96 default automated tests**, production build, and **26 local Windows Electron desktop checks** passed. The expanded desktop suite verifies immediate theme persistence, unrelated draft preservation, independent appearance saves, normalized shortcut reconciliation, companion preview, native opacity across hide/show and reload, and failed-save rollback/retry. It uses an isolated profile and mocked completions. CI and native packaging for these new appearance controls are pending. Earlier [CI passed on Windows, macOS, and Linux](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39122073154) at screenshot-fix commit `e4d73fa`, including **22 Windows Electron desktop checks**; that result predates the later appearance changes.
+
+**Show tray icon** remains a Workspace preference applied with **Save settings**. `Alt+W` hides the window and keeps the app running; it does not remove a tray icon by itself. Turning the icon off reduces notification-area clutter and does not hide the process from Task Manager.
+
+The [SignPath guide](SIGNING.md) records the actual application fields, public project draft, owner steps, and signing-to-installation workflow. On 18 October 2026, the owner reported successful application submission; approval remains pending. No signing certificate or undetectable-capture capability is claimed. The published 0.2.1 packages remain unchanged and do not contain the new appearance actions or screenshot-panel fix.
 
 ## 0.2.1 — appearance and signing preparation
 

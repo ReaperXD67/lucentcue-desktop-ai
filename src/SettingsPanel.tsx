@@ -6,7 +6,9 @@ import { api } from './bridge';
 
 interface Props {
   state: AppState;
-  onSave: (settings: Settings) => Promise<void>;
+  onSave: (settings: Partial<Settings>) => Promise<Settings>;
+  settingsBusy: boolean;
+  onPreviewCompanion: () => Promise<void>;
   onKey: (provider: Provider, key: string) => Promise<void>;
   onClose: () => void;
   onDeleteHistory: () => Promise<void>;
@@ -23,6 +25,8 @@ const message = (error: unknown) =>
 export default function SettingsPanel({
   state,
   onSave,
+  settingsBusy,
+  onPreviewCompanion,
   onKey,
   onClose,
   onDeleteHistory,
@@ -40,6 +44,9 @@ export default function SettingsPanel({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [appearanceSaving, setAppearanceSaving] = useState(false);
+  const [appearanceError, setAppearanceError] = useState('');
+  const [appearanceSaved, setAppearanceSaved] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -47,10 +54,29 @@ export default function SettingsPanel({
   const [quitError, setQuitError] = useState('');
   const saveErrorRef = useRef<HTMLParagraphElement>(null);
   const keyErrorRef = useRef<HTMLParagraphElement>(null);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(state.settings);
+  const appearanceErrorRef = useRef<HTMLParagraphElement>(null);
+  const previousSettings = useRef(state.settings);
+  const workspaceFields = (Object.keys(draft) as (keyof Settings)[]).filter(
+    (name) => name !== 'theme' && name !== 'companionOpacity',
+  );
+  const dirty = workspaceFields.some((name) => draft[name] !== state.settings[name]);
+  const appearanceDirty =
+    draft.theme !== state.settings.theme ||
+    draft.companionOpacity !== state.settings.companionOpacity;
+  const busy = saving || appearanceSaving || settingsBusy;
 
   useEffect(() => {
-    setDraft(state.settings);
+    const previous = previousSettings.current;
+    previousSettings.current = state.settings;
+    // A quick theme change must not erase an unsaved shortcut, prompt, or opacity.
+    setDraft((current) => {
+      const next = { ...current };
+      for (const name of Object.keys(state.settings) as (keyof Settings)[]) {
+        if (previous[name] !== state.settings[name])
+          Object.assign(next, { [name]: state.settings[name] });
+      }
+      return next;
+    });
   }, [state.settings]);
   useEffect(() => {
     if (saveError) saveErrorRef.current?.focus();
@@ -58,11 +84,34 @@ export default function SettingsPanel({
   useEffect(() => {
     if (keyError) keyErrorRef.current?.focus();
   }, [keyError]);
+  useEffect(() => {
+    if (appearanceError) appearanceErrorRef.current?.focus();
+  }, [appearanceError]);
   function update<K extends keyof Settings>(name: K, value: Settings[K]) {
     setDraft((previous) => ({ ...previous, [name]: value }));
-    setSaved(false);
-    setSaveError('');
-    setFieldErrors({});
+    if (name === 'theme' || name === 'companionOpacity') {
+      setAppearanceSaved(false);
+      setAppearanceError('');
+    } else {
+      setSaved(false);
+      setSaveError('');
+      setFieldErrors({});
+    }
+  }
+  async function saveAppearance(preview: boolean) {
+    if (busy || (preview && dirty)) return;
+    setAppearanceSaving(true);
+    setAppearanceError('');
+    setAppearanceSaved(false);
+    try {
+      await onSave({ theme: draft.theme, companionOpacity: draft.companionOpacity });
+      setAppearanceSaved(true);
+      if (preview) await onPreviewCompanion();
+    } catch (error) {
+      setAppearanceError(`Could not save appearance. ${message(error)}`);
+    } finally {
+      setAppearanceSaving(false);
+    }
   }
   async function saveKey(remove = false) {
     if (isPreview || keyPending || (!remove && !key.trim())) return;
@@ -81,6 +130,7 @@ export default function SettingsPanel({
   }
   async function saveSettings(event: FormEvent) {
     event.preventDefault();
+    if (busy) return;
     setSaveError('');
     setSaved(false);
     const errors: Record<string, string> = {};
@@ -103,10 +153,23 @@ export default function SettingsPanel({
     }
     setSaving(true);
     try {
-      await onSave({
-        ...draft,
-        shortcut: draft.shortcut.trim(),
-        captureShortcut: draft.captureShortcut.trim(),
+      const changes: Partial<Settings> = {};
+      for (const name of workspaceFields) {
+        if (draft[name] !== state.settings[name])
+          Object.assign(changes, {
+            [name]:
+              name === 'shortcut' || name === 'captureShortcut' ? draft[name].trim() : draft[name],
+          });
+      }
+      const validated = await onSave(changes);
+      // Canonical shortcuts can equal the previously saved value, so an
+      // external-state delta alone cannot reconcile the submitted draft.
+      setDraft((current) => {
+        const next = { ...current };
+        for (const name of workspaceFields) {
+          if (name in changes) Object.assign(next, { [name]: validated[name] });
+        }
+        return next;
       });
       setSaved(true);
     } catch (error) {
@@ -239,49 +302,85 @@ export default function SettingsPanel({
           key is still required.
         </p>
       </section>
+      <section className="settings-section" aria-labelledby={`${id}-appearance`}>
+        <h3 id={`${id}-appearance`}>Appearance</h3>
+        <label className="field" htmlFor={`${id}-theme`}>
+          Theme
+          <select
+            id={`${id}-theme`}
+            value={draft.theme}
+            disabled={busy}
+            onChange={(event) => update('theme', event.target.value as Settings['theme'])}
+          >
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="system">Follow system</option>
+          </select>
+        </label>
+        <div className="opacity-field">
+          <label htmlFor={`${id}-opacity`}>Companion opacity</label>
+          <output htmlFor={`${id}-opacity`}>{Math.round(draft.companionOpacity * 100)}%</output>
+          <input
+            id={`${id}-opacity`}
+            type="range"
+            min={85}
+            max={100}
+            step={1}
+            value={Math.round(draft.companionOpacity * 100)}
+            disabled={busy || !state.appearanceOpacitySupported}
+            aria-valuetext={`${Math.round(draft.companionOpacity * 100)} percent`}
+            aria-describedby={`${id}-opacity-help`}
+            onChange={(event) => update('companionOpacity', Number(event.target.value) / 100)}
+          />
+        </div>
+        <div className="opacity-scale" aria-hidden="true">
+          <span>85% translucent</span>
+          <span>100% solid</span>
+        </div>
+        <p className="field-help" id={`${id}-opacity-help`}>
+          {state.appearanceOpacitySupported
+            ? 'Only the small companion fades, including its text. This workspace stays solid. Save and preview to see the change.'
+            : isPreview
+              ? 'Companion translucency is available in Windows and macOS desktop builds. This browser preview stays solid.'
+              : 'Companion translucency is available on Windows and macOS. Linux windows stay solid.'}
+        </p>
+        <div className="appearance-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={busy || !appearanceDirty}
+            onClick={() => void saveAppearance(false)}
+          >
+            {appearanceSaving ? 'Saving…' : 'Save appearance'}
+          </button>
+          <button
+            className="primary-button"
+            type="button"
+            disabled={busy || dirty}
+            aria-describedby={dirty ? `${id}-appearance-preview-help` : undefined}
+            onClick={() => void saveAppearance(true)}
+          >
+            Save &amp; preview companion
+          </button>
+        </div>
+        {dirty && (
+          <p className="field-help" id={`${id}-appearance-preview-help`}>
+            Save your workspace changes below before opening the companion. You can save appearance
+            separately now.
+          </p>
+        )}
+        {appearanceError && (
+          <p className="form-error" ref={appearanceErrorRef} tabIndex={-1} role="alert">
+            {appearanceError}
+          </p>
+        )}
+        {appearanceSaved && !appearanceDirty && (
+          <p className="field-help" role="status">
+            Appearance saved.
+          </p>
+        )}
+      </section>
       <form onSubmit={(event) => void saveSettings(event)}>
-        <section className="settings-section" aria-labelledby={`${id}-appearance`}>
-          <h3 id={`${id}-appearance`}>Appearance</h3>
-          <label className="field" htmlFor={`${id}-theme`}>
-            Theme
-            <select
-              id={`${id}-theme`}
-              value={draft.theme}
-              disabled={saving}
-              onChange={(event) => update('theme', event.target.value as Settings['theme'])}
-            >
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-              <option value="system">Follow system</option>
-            </select>
-          </label>
-          <div className="opacity-field">
-            <label htmlFor={`${id}-opacity`}>Companion opacity</label>
-            <output htmlFor={`${id}-opacity`}>{Math.round(draft.companionOpacity * 100)}%</output>
-            <input
-              id={`${id}-opacity`}
-              type="range"
-              min={85}
-              max={100}
-              step={1}
-              value={Math.round(draft.companionOpacity * 100)}
-              disabled={saving || !state.appearanceOpacitySupported}
-              aria-valuetext={`${Math.round(draft.companionOpacity * 100)} percent`}
-              aria-describedby={`${id}-opacity-help`}
-              onChange={(event) => update('companionOpacity', Number(event.target.value) / 100)}
-            />
-          </div>
-          <p className="field-help" id={`${id}-opacity-help`}>
-            {state.appearanceOpacitySupported
-              ? '85% is gently translucent; 100% is solid. The whole companion, including text, fades. The full workspace stays solid.'
-              : isPreview
-                ? 'Companion translucency is available in Windows and macOS desktop builds. This browser preview stays solid.'
-                : 'Companion translucency is available on Windows and macOS. Linux windows stay solid.'}
-          </p>
-          <p className="field-help appearance-save-note">
-            Save settings below to apply your appearance.
-          </p>
-        </section>
         <section className="settings-section" aria-labelledby={`${id}-workspace`}>
           <h3 id={`${id}-workspace`}>
             Workspace{' '}
@@ -302,7 +401,7 @@ export default function SettingsPanel({
                   id={`${id}-${name}`}
                   value={draft[name]}
                   maxLength={80}
-                  disabled={saving}
+                  disabled={busy}
                   autoComplete="off"
                   onChange={(event) => update(name, event.target.value)}
                   aria-invalid={Boolean(fieldErrors[name])}
@@ -322,7 +421,7 @@ export default function SettingsPanel({
             <input
               type="checkbox"
               checked={draft.alwaysOnTop}
-              disabled={saving}
+              disabled={busy}
               onChange={(event) => update('alwaysOnTop', event.target.checked)}
             />
           </label>
@@ -331,7 +430,7 @@ export default function SettingsPanel({
             <input
               type="checkbox"
               checked={draft.showTrayIcon}
-              disabled={saving}
+              disabled={busy}
               aria-describedby={`${id}-tray-help`}
               onChange={(event) => update('showTrayIcon', event.target.checked)}
             />
@@ -346,7 +445,7 @@ export default function SettingsPanel({
             <input
               type="checkbox"
               checked={draft.captureProtection}
-              disabled={saving || !state.captureProtectionSupported}
+              disabled={busy || !state.captureProtectionSupported}
               aria-describedby={`${id}-capture-privacy-help`}
               onChange={(event) => update('captureProtection', event.target.checked)}
             />
@@ -359,7 +458,7 @@ export default function SettingsPanel({
             <input
               type="checkbox"
               checked={draft.saveHistory}
-              disabled={saving}
+              disabled={busy}
               aria-describedby={`${id}-history-help`}
               onChange={(event) => update('saveHistory', event.target.checked)}
             />
@@ -378,7 +477,7 @@ export default function SettingsPanel({
                 rows={5}
                 maxLength={12000}
                 value={draft.systemPrompt}
-                disabled={saving}
+                disabled={busy}
                 onChange={(event) => update('systemPrompt', event.target.value)}
                 aria-invalid={Boolean(fieldErrors.systemPrompt)}
                 aria-describedby={fieldErrors.systemPrompt ? `${id}-prompt-error` : undefined}
@@ -390,7 +489,7 @@ export default function SettingsPanel({
               </p>
             )}
           </details>
-          <button className="primary-button" type="submit" disabled={saving || !dirty}>
+          <button className="primary-button" type="submit" disabled={busy || !dirty}>
             {saving ? 'Saving…' : 'Save settings'}
           </button>
           {saved && !dirty && (
