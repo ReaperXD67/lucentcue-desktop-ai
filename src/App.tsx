@@ -1,4 +1,12 @@
-import { memo, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import {
   ArrowDown,
   ArrowUp,
@@ -71,6 +79,7 @@ export default function App() {
   const [streaming, setStreaming] = useState(false);
   const [notice, setNotice] = useState('');
   const [captureBusy, setCaptureBusy] = useState(false);
+  const [captureFocusRequest, setCaptureFocusRequest] = useState(0);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [copied, setCopied] = useState('');
@@ -127,6 +136,11 @@ export default function App() {
     if (stickToBottom.current)
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'instant' });
   }, [companion]);
+  useLayoutEffect(() => {
+    // Focus only for capture delivery, after React has revealed the composer.
+    // A separate token also handles captures rejected at the attachment limit.
+    if (captureFocusRequest > 0) composerRef.current?.focus();
+  }, [captureFocusRequest]);
   useEffect(
     () =>
       api.onCapture((attachment) => {
@@ -141,9 +155,7 @@ export default function App() {
           setNotice('Screenshot attached. Review it before sending.');
           return [...items, attachment];
         });
-        // Narrow workspaces hide the composer while a side panel is open.
-        // Wait for that panel to close before returning keyboard focus.
-        requestAnimationFrame(() => composerRef.current?.focus());
+        setCaptureFocusRequest((request) => request + 1);
       }),
     [],
   );

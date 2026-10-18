@@ -821,6 +821,29 @@ try {
     );
     assert.equal(await renderer.locator('.settings-panel, .browser-panel').count(), 0);
   }
+  await renderer.getByRole('button', { name: 'Settings', exact: true }).click();
+  await renderer.waitForFunction(
+    () => getComputedStyle(document.querySelector('.chat-workspace')!).display === 'none',
+  );
+  await deliverCapture('overflow-synthetic-capture');
+  await renderer
+    .getByRole('status')
+    .filter({ hasText: 'You can attach up to three screenshots.' })
+    .waitFor();
+  await renderer.waitForFunction(() => {
+    const composer = document.getElementById('message-input');
+    return (
+      document.activeElement === composer &&
+      getComputedStyle(document.querySelector('.chat-workspace')!).display !== 'none'
+    );
+  });
+  assert.equal(await composer.inputValue(), captureDraft);
+  assert.equal(await renderer.getByRole('img', { name: 'Screenshot preview' }).count(), 3);
+  assert.equal(
+    await renderer.getByRole('button', { name: 'Remove overflow-synthetic-capture.png' }).count(),
+    0,
+  );
+  assert.equal(await renderer.locator('.settings-panel, .browser-panel').count(), 0);
   assert.equal(
     await application.evaluate('globalThis.__lucentcueSmokeRequests.completions'),
     completionCountBeforeCapture,
@@ -828,7 +851,7 @@ try {
   await renderer.getByRole('button', { name: /^New conversation/ }).click();
   assert.equal(await renderer.getByRole('img', { name: 'Screenshot preview' }).count(), 0);
   checked(
-    'Capture delivery closes either narrow workspace panel, focuses the composer, preserves drafts and attachments, and never sends',
+    'Capture delivery closes either narrow workspace panel, focuses even at the attachment limit, preserves drafts and attachments, and never sends',
   );
   assert.deepEqual(pageErrors, [], 'The renderer must not emit uncaught JavaScript errors.');
   assert.equal((await readState()).settings.saveHistory, false);

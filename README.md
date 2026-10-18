@@ -17,7 +17,7 @@ For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md)
 - Shares the active conversation, draft, and attachments between companion and workspace; streams Markdown answers with a Stop button.
 - Offers a **Free** mode restricted to currently verified zero-price OpenRouter models, with no automatic paid fallback.
 - Connects your own OpenRouter, OpenAI, and Gemini keys through Settings.
-- Captures a display from the UI or a configurable shortcut and attaches it directly to the composer for preview/removal before sending it to a vision model.
+- Captures a display from the UI or a configurable shortcut and attaches it directly to the composer for preview/removal before sending it to a vision model. In 0.2.2 source, focus waits until React reveals the composer, including when the three-image limit rejects another capture.
 - Opens a visible Chromium browser, reads page context for review, and fills a selected text field with text you approve. You submit in the browser.
 - Provides configurable show/hide and screenshot shortcuts, optional always-on-top, an optional tray icon, and Markdown export.
 - Offers optional OS capture protection on Windows/macOS, with clear platform limitations.
