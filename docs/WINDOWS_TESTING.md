@@ -6,7 +6,7 @@ This record separates source/release checks, tests of an installed application, 
 
 [CI passed on all three platforms](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39118092268) at `7cde857`, including 96 default automated tests and **22 Windows Electron desktop checks**. The new regression injects a known harmless 1 × 1 PNG through the main-process capture-delivery event in an isolated profile. At a 900 × 720 workspace, it first verifies that Settings/Browser hides the composer, then checks that capture closes either panel, renders the preview, focuses the visible text box, preserves existing draft/attachments, and does not increment mocked completion requests. It does not capture the user's desktop, clipboard, or a real model response.
 
-The fix and actual SignPath application field guide are pushed in source. The existing 0.2.1 release assets are unchanged and do not contain this fix. No newer package was installed, no signing approval was obtained, and the current PC remains on 0.1.1. Preparing the SignPath form is separate from its owner's submission and the Foundation's eligibility decision.
+The fix and actual SignPath application field guide are pushed in source. The existing 0.2.1 release assets are unchanged and do not contain this fix. No newer package was installed, no signing approval was obtained, and the current PC remains on 0.1.1. On 18 October 2026, the owner reported successful SignPath application submission. This report is separate from a verified receipt or the Foundation's eligibility decision.
 
 ## 0.2.1 appearance and signing preparation
 

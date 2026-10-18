@@ -1,18 +1,18 @@
 # Code signing policy
 
-**Status: not enrolled, not signed.** The public 0.2.1 and earlier 0.2.0 previews contain unsigned packages. Windows Application Control refused the checksum-verified 0.2.0 installer on the tested PC; the existing 0.1.1 installation remains. A valid signature must also satisfy that device's policy. Signing alone cannot promise installation on every managed PC.
+**Status: application submitted; approval pending; not signed.** On 18 October 2026, the owner reported successful submission of the SignPath application. No approval, active signing configuration, or certificate has been confirmed. The public 0.2.1 and earlier 0.2.0 previews contain unsigned packages. Windows Application Control refused the checksum-verified 0.2.0 installer on the tested PC; the existing 0.1.1 installation remains. A valid signature must also satisfy that device's policy. Signing alone cannot promise installation on every managed PC.
 
 ## Free Windows route
 
-[SignPath Foundation](https://signpath.org/) is the first route to apply for: it can provide publicly trusted signing for accepted open-source projects. A free SignPath platform subscription alone does not establish that the Foundation has approved a certificate for LucentCue.
+[SignPath Foundation](https://signpath.org/) is the free Windows signing route currently being pursued: it can provide publicly trusted signing for accepted open-source projects. A free SignPath platform subscription alone does not establish that the Foundation has approved a certificate for LucentCue.
 
 Its [published conditions](https://signpath.org/terms.html) require maintained, released, documented open-source software, verifiable builds, appropriate metadata, MFA, named maintainers, and manual release approval. Executable applications also need verifiable reputation. Acceptance is discretionary; this young project has no promised eligibility or approval date. Signing must cover our own code rather than replacing upstream publishers' identities. The policy also excludes security circumvention tools. These requirements are an onboarding checklist, not a claim that an application has been accepted.
 
-The owner must review and submit the [official application](https://signpath.org/apply.html) using their own contact details. Account creation, MFA, terms acceptance, any identity checks, and release approvals belong to the owner. No application or message has been submitted on their behalf, and no provider attribution or certificate identity is claimed here.
+The owner reports having submitted the [official application](https://signpath.org/apply.html) using their own contact details. Any email verification, remaining account setup, MFA, identity checks, and release approvals belong to the owner. The assistant filled public project details and did not submit or accept agreements on the owner's behalf. No provider attribution or certificate identity is claimed here.
 
 ### Fill the official application
 
-These labels follow the [current application form](https://signpath.org/apply.html). The project fields have been prefilled in the open browser tab; contact details, consent checkboxes, CAPTCHA, and submission remain for the owner. A browser reload or a later session may lose that draft, so the values are recorded below. Preparing or prefilling a form does **not** submit an application, create an account, or obtain approval. Do not put an email address or signing token in this repository or in chat.
+These labels follow the [application form](https://signpath.org/apply.html). The assistant prefilled public project fields, and the owner subsequently reported successful submission. The values below preserve the project draft for reference; they are not an independently verified receipt or a reason to submit a duplicate application. Do not put an email address or signing token in this repository or in chat.
 
 | Form field                   | Value or owner action                                                                                                                                                                                                         |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,9 +45,11 @@ The form deliberately asks for a short description without dependency or version
 
 ### Owner-only submission checklist
 
+Submission is complete according to the owner's report. Keep the confirmation privately and check the supplied inbox, including spam, for any verification or follow-up. Do not submit a duplicate unless SignPath asks for one. The checklist below records the process; approval and the post-submission setup are still pending.
+
 1. Review the project fields and supply your real first name, last name, and contact email. Confirm the maintainer type and actual discovery channel.
 2. Read the [Foundation conditions and code of conduct](https://signpath.org/terms.html). Complete the required code-of-conduct agreement and personal-data processing consent only if you accept them. The marketing checkbox is optional; leave it unchecked unless you want those messages.
-3. Complete the reCAPTCHA yourself, then select **Submit**. Look for the page's confirmation and any verification email. A prepared form alone is not a submitted application.
+3. Select **Submit** and complete any requested reCAPTCHA yourself. Look for the page's confirmation and any verification email. A prepared form alone is not a submitted application.
 4. Follow SignPath's response. If accepted, create or finish the requested account setup, enable MFA on SignPath and GitHub, and confirm the maintainer/reviewer/release-approver roles. Do not claim these checks are complete until they are.
 5. Provide the approved organization/project identifiers, signing policy, artifact configuration, and exact certificate subject for integration. Add the signing API token directly to the designated protected **GitHub Actions environment secret** when the pipeline is configured; do not send it through chat.
 
