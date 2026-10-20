@@ -1,6 +1,6 @@
 # Window capture privacy
 
-LucentCue can request OS protection for its window while keeping it visible locally. The feature is already in installed 0.2.2 and does not require the 0.2.3 model-picker update. This is ordinary window-content privacy for supported capture paths; the actual sharing or recording application determines what its recipient receives. Capture protection starts **off** and does not make screenshots, keyboard activity, or the application process undetectable.
+LucentCue can request OS protection for its window while keeping it visible locally. The feature is available in the published 0.2.4 preview, which is installed on the tested PC; its capture privacy was not reverified after the upgrade. The dated evidence below covers earlier installed/source versions. This is ordinary window-content privacy for supported capture paths; the actual sharing or recording application determines what its recipient receives. Capture protection starts **off** and does not make screenshots, keyboard activity, or the application process undetectable.
 
 ## Enable and save the preference
 
@@ -8,7 +8,7 @@ LucentCue can request OS protection for its window while keeping it visible loca
 2. Check **Exclude window from screen capture** and select **Save settings**. Wait for **Settings saved**; changing only the checkbox leaves an unsaved draft.
 3. In a permitted test recording or call with harmless content, inspect the output from the exact sharing app and mode you intend to use. A local app view or native flag alone cannot establish the remote result.
 
-The owner enabled and saved this setting in installed 0.2.2.0. A read-only Windows check at **22:14:19 IST on 18 October 2026** confirmed successful display affinity **`0x11`**, with the same installed app's native window visible and not minimized. Windows accepted the exclusion request; this alone does not prove a recorder's output. The requested Scaler app full-screen stream and recipient view have not been tested. No agent changed the privacy preference or those sharing controls.
+The owner enabled and saved this setting in installed 0.2.2.0. A read-only Windows check at **22:14:19 IST on 18 October 2026** confirmed successful display affinity **`0x11`**, with the same installed app's native window visible and not minimized. Windows accepted the exclusion request then; this historical check does not establish the native state or recorder output after the 20 October upgrade to 0.2.4. The requested Scaler app full-screen stream and recipient view have not been tested. No agent changed the privacy preference or those sharing controls.
 
 ## Mechanism and platform limits
 
@@ -49,8 +49,10 @@ Exact-window WGC is a distinct path. Its source OFF/restored baselines showed th
 
 ## Installed app and target sharing path
 
+The tested PC now runs **0.2.4.0**. No installed 0.2.4 capture-affinity or recorder-output check was completed during the upgrade; the following installed capture results are historical 0.2.2 evidence from 18 October 2026.
+
 Before the owner enabled protection, a read-only installed 0.2.2 exact-window WGC probe captured one complete 160 × 100 RGB frame with no black pixels; native affinity stayed `0x0`. Its fixed-size collector intentionally stopped FFmpeg after the complete frame, with no image persisted or uploaded. This is the historical unprotected window baseline; the later native `0x11` check above confirms the enabled request. Protected capture pixels and the Scaler full-screen stream remain unverified. No screenshot was sent to the model during these checks.
 
-After enabling protection, the installed exact-window WGC probe received **0 of 48,000 required RGB bytes** within a 10-second frame deadline. The native affinity remained `0x11`, the window stayed visible, and its verified owner stayed stable before and after the attempt. The owned FFmpeg process was cleaned up with actual exit `-1`; no complete frame or pixel statistics were available. This is **capture unavailable / inconclusive for pixels**, not proof of universal exclusion or the Scaler recipient's view. No image was persisted or uploaded, key read, or model request made.
+After enabling protection in installed 0.2.2, the exact-window WGC probe received **0 of 48,000 required RGB bytes** within a 10-second frame deadline. The native affinity remained `0x11`, the window stayed visible, and its verified owner stayed stable before and after the attempt. The owned FFmpeg process was cleaned up with actual exit `-1`; no complete frame or pixel statistics were available. This is **capture unavailable / inconclusive for pixels**, not proof of universal exclusion or the Scaler recipient's view. No image was persisted or uploaded, key read, or model request made.
 
 Pluely's inspectable historical code enables Tauri content protection, whose Windows dependency uses the same affinity mechanism. Its v1 product is closed source, so that public code does not prove the supplied binary's full implementation or universal exclusion. See the immutable [source comparison](RESEARCH.md#pluelys-inspectable-capture-mechanism).

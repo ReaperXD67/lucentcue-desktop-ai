@@ -1,16 +1,14 @@
 # Get started with LucentCue on Windows
 
-Use the desktop application for real answers, screenshots, and browser assistance. The web interface preview cannot perform those actions. The published 0.2.3 preview adds the searchable model picker and passes cross-platform CI, including 30 Windows desktop checks. Windows Application Control blocked its installer on the tested PC, so that PC remains on 0.2.2 with the native model dropdown. A configured OpenRouter key and DeepSeek V4.1 Flash passed one harmless live text test; image answers and the Scaler full-screen sharing path remain unverified. [WINDOWS_TESTING.md](WINDOWS_TESTING.md) separates source, package, installation, and provider results.
+Use the desktop application for real answers, screenshots, and browser assistance. The published **0.2.4 preview** includes the searchable model picker and **Alt+N** for a fresh companion chat. Cross-platform CI and all 34 Windows desktop integration checks passed. The official Windows upgrade installed and opened on the tested PC on 20 October 2026. The web interface preview cannot provide real desktop actions. [WINDOWS_TESTING.md](WINDOWS_TESTING.md) separates source, package, installation, and provider results.
 
 ## Install or upgrade
 
-Download the Windows installer and `SHA256SUMS.txt` from the [0.2.3 preview release](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.3-preview.1). The installer is unsigned. On a device whose policy permits installation, open LucentCue from the Start menu afterwards. Installed users do not need Node.js, npm, or a source checkout.
+Download the Windows installer and `SHA256SUMS.txt` from the [0.2.4 preview release](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.4-preview.1). The installer is unsigned. On a device whose policy permits installation, open **LucentCue** from its desktop shortcut or Start menu afterwards. Installed users do not need Node.js, npm, or a source checkout.
 
-On the tested PC, the checksum-verified 0.2.3 installer was refused before startup on 18 October 2026 with **“An Application Control policy has blocked this file.”** Code Integrity events 3077/3033 confirm enterprise signing requirements. No installer exit code exists because the process did not start. The existing 0.2.2 app reopened normally; the 0.2.3 searchable picker has not been installed. Wait for a publisher signature trusted by the device's policy or administrator-approved deployment; SignPath approval remains pending.
+The normal 0.2.4 upgrade produced installed product version **0.2.4.0** and the new shortcut setting. Settings displayed **“One or more saved API keys could not be unlocked”**: enter the OpenRouter key again directly under **Connections**, then **Save key**. Do not put it in chat. The selected DeepSeek model, Light theme, and shortcut settings are visible; no live question was sent during this update. Installed native Alt+N/Alt+W verification remains unfinished at the owner's request.
 
-On 18 October 2026, the official checksum-verified 0.2.2 Windows installer completed with exit code 0 on the tested PC. The installed executable reports `0.2.2.0` and opens the compact companion. Open the **LucentCue** desktop shortcut or **Start → LucentCue**. Actual installed theme switching, 85% companion opacity, solid workspace, **Alt+W** hide/restore with the tray off, and the configured capture shortcut's attachment preview/removal passed; no question was sent. Existing custom shortcuts are preserved. Detailed results are recorded in [Windows testing](WINDOWS_TESTING.md).
-
-Windows also refused the earlier 0.2.0 installer. The official 0.2.1 and 0.2.2 packages were accepted through normal installation; all these outcomes occurred without changing security policy, trust stores, file metadata, or published filenames. Packages remain unsigned, and no reason for the different policy outcomes is claimed.
+Windows previously refused 0.2.3 before startup with an Application Control message; 0.2.4 installed normally. No security policy, trust store, file metadata, or published filename was changed, and no reason for the different outcomes is claimed. If your device refuses a package, use a publisher signature trusted by its policy or administrator-approved deployment. SignPath approval and signing remain unconfirmed.
 
 The per-user executable is `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe`. For an upgrade, use **Quit LucentCue** in the app or tray menu first, then run the newer official installer and choose the same installation location. There is no automatic updater. If local history matters to you, export the conversations you want to keep before changing versions.
 
@@ -26,7 +24,7 @@ For translucency, open **Settings → Appearance**, set **Companion opacity**, a
 
 Appearance is saved separately from Workspace changes. If you have an unsaved shortcut, pin, privacy, or other Workspace change, save it with **Save settings** before using **Save & preview companion**; preview is disabled until then so those drafts are not discarded. You can still use **Save appearance** or the header theme button without saving unrelated edits.
 
-These controls are included in the published and installed 0.2.2 preview. The actual installed Windows app passed sun/moon switching and saving/previewing 85% companion opacity while the full workspace stayed solid. Older 0.2.1 uses **Settings → Appearance → Save settings**, then **Companion** to see opacity, and has no header theme button; upgrade for the simpler controls.
+These controls are included in 0.2.4 and have been available since 0.2.2. Historical installed 0.2.2 checks passed sun/moon switching and saving/previewing 85% companion opacity while the workspace stayed solid. The 0.2.4 upgrade opened in Light at 100% opacity; those appearance transitions were not retested. Older 0.2.1 has no header theme button and uses **Save settings**, then **Companion**, to see opacity.
 
 For free trusted Windows signing, the owner reports having submitted the [SignPath application](SIGNING.md); approval, pipeline setup, and a signed installer remain pending. The successful unsigned 0.2.2 installation is separate from that signing work.
 
@@ -45,7 +43,7 @@ Free access is limited by [OpenRouter's current quotas](https://openrouter.ai/do
 
 ### Paid OpenRouter for screenshot questions
 
-For a budget starting point, choose **DeepSeek V4.1 Flash** for image questions and text answers. DeepSeek documents its native [image understanding](https://api-docs.deepseek.com/guides/vision/). Its OpenRouter connection passed a harmless text-only test in the installed app; image-question quality remains unverified. **GPT-6 Luna** is an untested alternative if you prefer an OpenAI model. Quality depends on the question and image readability.
+For a budget starting point, choose **DeepSeek V4.1 Flash** for image questions and text answers. DeepSeek documents its native [image understanding](https://api-docs.deepseek.com/guides/vision/). Its OpenRouter connection passed a harmless text-only test in installed 0.2.2 on 18 October; the current 0.2.4 key needs re-entry and image-question quality remains unverified. **GPT-6 Luna** is an untested alternative if you prefer an OpenAI model. Quality depends on the question and image readability.
 
 | Use | Exact OpenRouter model | Listed input / output per million tokens |
 | --- | --- | --- |
@@ -62,7 +60,7 @@ Use **New conversation** for each unrelated image: follow-ups resend the active 
 
 The 0.2.3 model picker shows readable model names and IDs in Dark and Light. **Images only** filters image-capable models; **Free** labels describe zero-price eligibility in the current catalog. Search by name or ID, browse with ↑/↓, select with Enter, or close with Escape. Clicking outside closes the picker. Model changes do not send your question. The picker is unavailable during generation or a provider/catalog change, so models from a previous provider cannot be selected accidentally. Older 0.2.2 uses the native model dropdown.
 
-On 18 October 2026, the existing installed 0.2.2 app showed a configured OpenRouter key and **Bring your key → OpenRouter → DeepSeek: DeepSeek V4.1 Flash · vision**. The harmless text-only request “Reply with exactly OK.” returned “OK”. The key was not read or exposed, and no image or page attachment was sent. This verifies the text connection, not screenshot-answer quality.
+On 18 October 2026, installed 0.2.2 showed a configured OpenRouter key and **Bring your key → OpenRouter → DeepSeek: DeepSeek V4.1 Flash · vision**. The harmless text-only request “Reply with exactly OK.” returned “OK”. The key was not read or exposed, and no image or page attachment was sent. This verifies text access at that historical check, not screenshot-answer quality or the current 0.2.4 connection. After the 20 October upgrade, a saved-key unlock notice requires key re-entry.
 
 ![LucentCue model picker searching the exact DeepSeek V4.1 Flash ID, with the selected result and Images label](images/model-picker.png)
 
@@ -74,16 +72,16 @@ App-only screenshot from the isolated 0.2.3 test profile; the shortcut shown is 
 | --- | --- | --- |
 | Show or hide LucentCue | `Alt+W` | Global, while LucentCue is running |
 | Capture a display | `Alt+Shift+S` | Global, while LucentCue is running |
-| Open a fresh companion chat | `Alt+N` | Global; 0.2.4 source or a future package required |
+| Open a fresh companion chat | `Alt+N` | Global, while LucentCue 0.2.4 or newer is running |
 | Send a message | `Enter` | Message input focused |
 | Insert a new line | `Shift+Enter` | Message input focused |
 | Hide the current window | `Alt+F4` | Standard Windows close action; does not quit LucentCue |
 
-In 0.2.4 source, **Alt+N** opens a fresh companion from the full workspace, companion, or hidden window and focuses its empty text box. It stops an active answer and clears the unsent draft, screenshot attachments, and attached browser context. Previous messages and partial answers remain available from the workspace's conversation list for this session; saving history to disk is still optional. During an active screenshot/chooser, Alt+N is ignored so a capture cannot land in a different chat; press it again after capture finishes. Installed 0.2.2 and published 0.2.3 do not have this shortcut.
+In 0.2.4, **Alt+N** opens a fresh companion from the full workspace, companion, or hidden window and focuses its empty text box. It stops an active answer and clears the unsent draft, screenshot attachments, and attached browser context. Previous messages and partial answers remain available from the workspace's conversation list for this session; saving history to disk is still optional. During an active screenshot/chooser, Alt+N is ignored so a capture cannot land in a different chat; press it again after capture finishes. Older 0.2.2 and 0.2.3 do not have this shortcut.
 
 Change the global shortcuts in **Settings → Workspace**, then select **Save settings**. Use a modifier and key, such as `Control+Shift+Space`. If another app owns the combination, choose another; failed changes restore the previous bindings. Custom bindings are kept on upgrade. If a previous binding already owns Alt+N, the new-chat default uses Alt+Shift+N or Control+Alt+N and Settings shows a notice. Search conversations, Export, and Stop generating remain UI buttons without dedicated app shortcuts.
 
-The tested PC's current user preferences are Light, 100% opacity, `Alt+W` show/hide, `Alt+Shift+S` capture, tray icon on, and history off. Earlier Dark/85%/custom `Alt+S` checks in the test record are historical preferences, not the current setup.
+On 20 October 2026, installed 0.2.4 Settings showed Light, 100% opacity, `Alt+W` show/hide, custom `Alt+S` capture, `Alt+N` new conversation, tray icon off, and history off. The capture table above gives the default; your saved custom shortcut takes precedence. The OpenRouter key needs re-entry after a saved-credential unlock notice.
 
 The titlebar **X** hides the window; **−** minimizes it. Click the tray icon to show/hide it, or use the tray menu's **Open companion**, **Open workspace**, **Take screenshot**, and **Quit LucentCue**. The pin button or **Keep window on top** setting controls topmost behavior. On Windows, pinning uses a level above the taskbar because the default floating level could immediately lose native topmost status on the tested system.
 
@@ -95,7 +93,7 @@ Use the screenshot button or capture shortcut, select a display if asked, and re
 
 The global shortcut restores LucentCue and attaches the screenshot directly to the text box area; type your question beside it and select **Send**. Up to three screenshots can be attached. LucentCue briefly hides its own window before capture so its UI is omitted from that image. The capture path uses an in-memory image, without writing an image file or placing it on the clipboard. This does not make capture undetectable to the operating system or monitoring software, and OS prompts or indicators may still appear. In 0.2.2, shortcut delivery also closes an overlapping Settings/Browser panel and focuses the composer so the attachment can be reviewed immediately.
 
-A conversation holds up to **eight images total**, with a maximum of three per message, 8,000,000 data-URL characters per image, and 20,000,000 across the conversation. The app enforces these bounds independently of provider limits. Earlier images are sent again on follow-ups, so the safeguard bounds memory, request size, and repeated image input costs. Use **New conversation** (Alt+N in 0.2.4 source) for the next unrelated image; the model/provider may have additional limits.
+A conversation holds up to **eight images total**, with a maximum of three per message, 8,000,000 data-URL characters per image, and 20,000,000 across the conversation. The app enforces these bounds independently of provider limits. Earlier images are sent again on follow-ups, so the safeguard bounds memory, request size, and repeated image input costs. Use **New conversation** (Alt+N in 0.2.4) for the next unrelated image; the model/provider may have additional limits.
 
 In **Browser assist**, select **Set up assistant browser** once to download optional Chromium. This uses the bundled desktop runtime. Open a website, select its tab in the visible Chromium window, and choose **Read page**. Review the text, then **Attach to question** if you want it sent with your message. To write into a page, choose a supported field, review the exact text, and select **Fill selected field**. You submit in Chromium. Website input events may save drafts or trigger site behavior. See [browser boundaries](BROWSER.md).
 
@@ -103,7 +101,7 @@ In **Browser assist**, select **Set up assistant browser** once to download opti
 
 History and capture protection start **off**. **Save history on this device** stores recent conversation text locally without encryption; turning it off and saving removes saved history. **Delete saved history** has a second confirmation. Provider keys use OS-backed encryption when available; otherwise the app shows a notice and retains keys only for the session.
 
-To request capture privacy yourself, open **Settings**, scroll to the **Workspace section**, check **Exclude window from screen capture**, and select **Save settings**. The feature is already available in installed 0.2.2; no 0.2.3 upgrade is needed. The setting starts off and an unsaved checkbox is not an enabled protection request. On the tested PC, the owner enabled and saved it; a read-only native check at 22:14:19 IST on 18 October 2026 confirmed display affinity **`0x11`** while the installed window remained visible. Windows accepted the request; the Scaler app's full-screen stream and recipient view remain unverified.
+To request capture privacy yourself, open **Settings**, scroll to the **Workspace section**, check **Exclude window from screen capture**, and select **Save settings**. The feature is included in 0.2.4 and has been available since 0.2.2. The setting starts off and an unsaved checkbox is not an enabled protection request. The owner enabled and saved it in installed 0.2.2; a read-only check at 22:14:19 IST on 18 October 2026 confirmed affinity **`0x11`** while that window remained visible. This is historical evidence: native affinity and recorder output were not rechecked after the 0.2.4 upgrade. The Scaler full-screen stream and recipient view remain unverified.
 
 The subsequent installed exact-window WGC probe produced no complete frame within its deadline, so it is recorded as **capture unavailable**, not proof that all capture is excluded. The earlier unprotected probe did capture a complete frame. [Windows testing](WINDOWS_TESTING.md) records both outcomes separately from the source-build display-capture passes.
 

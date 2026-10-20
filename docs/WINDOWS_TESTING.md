@@ -1,18 +1,32 @@
 # Windows installation and privacy test record
 
-## 0.2.4 new-companion shortcut — source checks, 20 October 2026
+## 0.2.4 new-companion shortcut — source, release, and installation, 20 October 2026
 
 The source update adds configurable Alt+N to open a fresh companion. Desktop tests use an isolated temporary profile and uncommon registered test bindings, mock image/browser context, and mocked provider streams. They invoke the actual registered main-process new-chat callback; they do not inject an Alt+N OS keypress into the installed app. No personal key, actual screenshot, browser session, or live completion is used.
 
 Formatting, type checks, **101 default automated tests**, the production build, and **34 local Windows desktop checks** passed. Source validation covers three-way shortcut swaps, collision rejection and registration rollback, Settings-to-companion reset, repeated and hidden companion reveal, composer focus, partial-response cancellation, stale stream rejection, and previous conversation retention with disk history disabled. A delayed cancellation-acknowledgement regression confirms a pending history selection cannot overwrite the new companion. This work does not retest external capture privacy or the Scaler stream.
 
-No 0.2.4 package is published or installed. Actual installed Alt+N keypress behavior remains unverified; the installed 0.2.2 app does not have the new binding.
+| Check | Result |
+| --- | --- |
+| Source and published preview | [`v0.2.4-preview.1`](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.4-preview.1), source `79369b773b10b7b68d30ea32988ca1a9ab4d92d7` |
+| Source CI | [Passed on all three platforms](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39389155509), including 34 hosted Windows desktop checks |
+| Native packages and verification | [Native build](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39390195125) and [asset/checksum verification](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39390551136) passed; five native packages plus manifest |
+| Windows installer | `LucentCue.Setup.0.2.4.exe`, 117,820,109 bytes; Authenticode `NotSigned` |
+| Installer SHA-256 | `03db9bc74d2b161712e067313e8e31d67eaf9bd42c7c0b1086a6a6efa982860f`, matches both downloaded manifest and GitHub asset digest |
+| Manifest SHA-256 | `42ea4285d25a781ea7d224d867e3443de7418f86d47b33fbf4b785467162c64c`, matches GitHub asset digest |
+| Normal per-user upgrade | `/S` process started at `2026-10-20T08:05:27.337Z`. The initial 15-second observation did not capture exit; a later process check found no installer, and the installed product version changed to **0.2.4.0**. No installer exit code is claimed |
+| Launch and desktop shortcut | App opens from the installed executable; the desktop shortcut targets `%LOCALAPPDATA%\Programs\LucentCue\LucentCue.exe` |
+| Installed Settings | Light, 100% opacity, Alt+W show/hide, custom Alt+S capture, new Alt+N binding, tray off, history off, and DeepSeek V4.1 Flash selection visible |
+| Credentials | UI reports one or more saved API keys could not be unlocked and shows no configured OpenRouter key. Re-entry directly in Settings is required; no key was read/exposed, and no live completion was sent |
+| Native Alt+N / Alt+W | Unfinished: test windows disappeared during checks. No native-keypress pass is claimed. The owner explicitly requested finishing without further keyboard tests |
 
-## Current installed connection and capture state — 18 October 2026
+The previous 0.2.3 installer was blocked before startup; this 0.2.4 package installed through the normal path. No security policy, trust store, file metadata, or published filename was changed, and no cause for the different outcomes is claimed. SignPath approval and signing remain unconfirmed. Installed 0.2.4 capture privacy, image-question quality, browser runtime, and the Scaler stream were not retested.
 
-The actual installed executable remains **0.2.2.0**. Its UI shows a configured OpenRouter key and **DeepSeek V4.1 Flash · vision** under Bring your key. One harmless live text request, “Reply with exactly OK.”, returned “OK”. No key was read or exposed, and no screenshot, image, or page attachment was sent. This confirms text access; vision-answer quality remains unverified.
+## Historical 0.2.2 connection and capture state — 18 October 2026
 
-Current user preferences are **Light, 100% opacity, Alt+W show/hide, Alt+Shift+S capture, tray on, and history off**. Earlier Dark/85%/custom Alt+S/tray-off results below record previous checks, not the current preferences.
+At this check, the installed executable was **0.2.2.0**. Its UI showed a configured OpenRouter key and **DeepSeek V4.1 Flash · vision** under Bring your key. One harmless live text request, “Reply with exactly OK.”, returned “OK”. No key was read or exposed, and no screenshot, image, or page attachment was sent. This confirms historical text access; vision-answer quality remains unverified. The 20 October 0.2.4 result above supersedes this installed-version/key state.
+
+User preferences at this check were **Light, 100% opacity, Alt+W show/hide, Alt+Shift+S capture, tray on, and history off**. These are historical; the 0.2.4 Settings observations above are newer.
 
 The owner manually enabled **Exclude window from screen capture** and selected **Save settings**. At **22:14:19 IST on 18 October 2026**, a read-only `GetWindowDisplayAffinity` check on the verified installed **0.2.2.0** app succeeded with **`0x11` (`WDA_EXCLUDEFROMCAPTURE`)**, Win32 error 0, native visibility true, and minimized false. Windows accepted the request while the local window remained visible. No agent changed the privacy preference. This establishes the enabled OS policy, not successful exclusion from a particular recorder. No Scaler app full-screen stream or recipient view has been tested. See [capture privacy](CAPTURE_PRIVACY.md) for supported behavior and exact-path limits.
 
@@ -22,7 +36,7 @@ After the owner enabled and saved protection, the memory-only exact-window WGC p
 
 ## 0.2.3 model-picker source, release, and installation checks
 
-0.2.3 replaces the unreadable native model dropdown with a searchable themed popup, name/ID search, image-only filtering, exact-ID saves, and keyboard selection/dismissal. A provider/mode transition blocks old catalog choices, including while the settings save is pending. Formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks** passed. The release is published; its Windows installer was blocked before startup on the tested PC, which remains on installed 0.2.2.
+0.2.3 replaces the unreadable native model dropdown with a searchable themed popup, name/ID search, image-only filtering, exact-ID saves, and keyboard selection/dismissal. A provider/mode transition blocks old catalog choices, including while the settings save is pending. Formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks** passed. The release is published; its Windows installer was blocked before startup on 18 October, leaving the PC on 0.2.2 at that time. The later 0.2.4 upgrade above supersedes that installed-version state.
 
 The isolated-profile desktop suite adds model-picker coverage for name/ID search, image-only filtering, persisted Enter selection without a completion request, selected feedback, empty results, Escape/outside dismissal with the draft retained, Dark/Light text contrast of at least 4.5:1, popup bounds at 900 × 620, and automatic scrolling to the keyboard-active option. A delayed provider save inside the temporary test profile verifies that provider/mode controls and the previous catalog stay unavailable while saving, then that old models are absent from the new catalog. Dark, Light, and filtered-search screenshots were visually inspected. These checks use mocked catalogs and completions, with optional real screenshot/browser paths disabled; they do not establish live paid-model quality or installed-package behavior.
 
@@ -44,7 +58,7 @@ No security policy, trust store, file metadata, or published filename was change
 
 At the end of that earlier model-selection check, the existing 0.2.2 app was left visible in the full workspace with Dark restored and DeepSeek selected; the original unsent draft was manually restored and visibly verified, with no Send action. This was manual restoration, not automatic recovery across a restart. The later current user preferences are recorded above.
 
-This record separates source/release checks, tests of an installed application, and live provider access. **The official unsigned 0.2.2 Windows preview is installed; its earlier direct Dark/Light switching, 85% companion opacity, Alt+W hide/restore with the tray off, and configured screenshot shortcut's preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, installed protected capture output, image answers, and browser runtime remain unverified. The current text-connection pass and accepted capture-affinity request do not establish those outcomes.
+This historical record separates source/release checks, installed-app tests, and live provider access. **The official unsigned 0.2.2 preview was installed at the time; its direct Dark/Light switching, 85% companion opacity, Alt+W hide/restore with the tray off, and configured screenshot shortcut's preview/removal passed.** The earlier 0.2.0 installer was blocked before startup; its installed behavior remains unverified. Trusted signing, installed protected capture output, image answers, and browser runtime were unverified. The dated 0.2.2 text-connection pass and accepted capture-affinity request do not establish those outcomes for the newer 0.2.4 installation.
 
 ## 0.2.2: direct appearance controls and shortcut attachment visibility
 
@@ -189,7 +203,7 @@ The Windows CI job passed `npm run test:desktop` after building, using its isola
 
 ## Installed 0.1.1 baseline results
 
-These are historical checks of the earlier 0.1.1 installation, which used `Alt+R`; the current installed 0.2.2 checks above use `Alt+W`. Preserve exact-version evidence without personal keys, prompts, browsing sessions, or other private content. Use `%LOCALAPPDATA%`/`%APPDATA%` in public paths rather than a person's Windows account name.
+These are historical checks of the earlier 0.1.1 installation, which used `Alt+R`; the later 0.2.2 checks above use `Alt+W`. Preserve exact-version evidence without personal keys, prompts, browsing sessions, or other private content. Use `%LOCALAPPDATA%`/`%APPDATA%` in public paths rather than a person's Windows account name.
 
 | Check | Observed result |
 | --- | --- |
