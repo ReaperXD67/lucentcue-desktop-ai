@@ -4,7 +4,7 @@
 
 An open-source desktop AI assistant for questions, screenshot context, and practical browser help. Keep a small companion one shortcut away, open the full workspace when you need it, and choose exactly what you send to your own OpenRouter, OpenAI, or Gemini account.
 
-**0.2.3 published preview · MIT · Electron + React + TypeScript.** The [latest preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.3-preview.1) adds a searchable, readable model picker with image filtering and exact model IDs. Windows, macOS, and Linux packages include SHA-256 checksums. Packages remain unsigned: Windows Application Control blocked the 0.2.3 installer on the tested PC, which remains on 0.2.2. SignPath approval is pending. See [release status](#release-status), [signing setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
+**0.2.4 source · 0.2.3 published preview · MIT · Electron + React + TypeScript.** Current source adds configurable **Alt+N** to open a fresh companion chat. The [published preview](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.3-preview.1) includes the searchable model picker and Windows, macOS, and Linux packages with SHA-256 checksums. Packages remain unsigned: Windows Application Control blocked the 0.2.3 installer on the tested PC, which remains on 0.2.2. Alt+N requires running updated source or a future package. SignPath approval is pending. See [release status](#release-status), [signing setup](docs/SIGNING.md), and [preview notes](docs/RELEASE_NOTES.md).
 
 For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md). [Windows testing](docs/WINDOWS_TESTING.md) records actual installation results separately from capture/privacy checks and live model access.
 
@@ -20,7 +20,7 @@ For the installed Windows app, follow [Getting started](docs/GETTING_STARTED.md)
 - Finds models by name or exact ID in a themed picker, with an **Images only** filter, clear image/free labels, and keyboard navigation.
 - Captures a display from the UI or a configurable shortcut and attaches it directly to the composer for preview/removal before sending it to a vision model. Focus waits until React reveals the composer, including when the three-image limit rejects another capture.
 - Opens a visible Chromium browser, reads page context for review, and fills a selected text field with text you approve. You submit in the browser.
-- Provides configurable show/hide and screenshot shortcuts, optional always-on-top, an optional tray icon, and Markdown export.
+- Provides configurable show/hide, screenshot, and fresh-companion-chat shortcuts, optional always-on-top, an optional tray icon, and Markdown export.
 - Offers optional OS capture protection on Windows/macOS, with clear platform limitations.
 - Keeps conversations in memory by default; optional local history excludes screenshot images.
 
@@ -72,10 +72,15 @@ For a budget starting point for paid screenshot questions, use **Bring your key 
 | --- | --- |
 | Show / hide LucentCue | `Alt+W` |
 | Capture screenshot | `Alt+Shift+S` |
+| Open a fresh companion chat (0.2.4 source) | `Alt+N` |
 | Send message | `Enter` |
 | New line | `Shift+Enter` |
 
-Change global shortcuts in Settings. If a shortcut is already taken, choose another; failed changes restore the previous bindings. Upgrading replaces the former default `Alt+R` with `Alt+W` while preserving a custom binding. Closing the window keeps LucentCue running. Use **Quit LucentCue** in the app or tray menu to exit.
+Change global shortcuts in **Settings → Workspace**, then **Save settings**. Alt+N opens, shows, and focuses a fresh companion from either view or a hidden window; it clears the unsent draft, attachments, and attached page context, and stops an active answer. Previous turns and partial answers remain in the session conversation list, with disk persistence controlled separately by the history preference. During an in-progress screenshot/chooser, the shortcut is ignored; press it again after capture finishes.
+
+If a shortcut is already taken, choose another; failed changes restore the previous bindings. Upgrading keeps existing custom shortcuts. If an older custom binding already uses Alt+N, only the new-chat default moves to an available Alt+Shift+N or Control+Alt+N, with a notice. Closing the window keeps LucentCue running. Use **Quit LucentCue** in the app or tray menu to exit.
+
+Each message can attach up to **three images**, and a conversation can contain **eight** in total, subject to image-size limits. This is an app safeguard: every follow-up resends the active conversation's earlier images, increasing request size, memory, and potentially provider charges. Start a fresh chat with Alt+N for unrelated screenshots. These limits are independent of each model's own context/image limits.
 
 The companion is a small resizable window; the full workspace opens from its Settings control. Switching views preserves the conversation and unsent draft. You can turn **Show tray icon** off to reduce notification-area clutter and restore it from Settings. This does not hide LucentCue from Task Manager or the operating system; keep your configured show/hide shortcut available when the tray icon is off. On Windows, **Keep window on top** uses a level above the taskbar to retain native topmost status reliably.
 
@@ -125,6 +130,8 @@ No release currently carries a LucentCue publisher signature. The owner reported
 The manual **Attach packages to draft preview** workflow transfers verified successful native-build artifacts and SHA-256 checksums to an existing draft prerelease. It keeps the release unpublished for maintainer review; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Release status
+
+**0.2.4 is a source update**, adding the new companion shortcut and preserving the eight-image safeguard. Formatting, type checks, **101 default automated tests**, the production build, and **34 local Windows desktop checks** passed. Desktop tests use mocked completions and registered callbacks; an actual installed Alt+N keypress has not been tested. It has not been packaged or installed on the tested PC. See [preview notes](docs/RELEASE_NOTES.md) and [Windows testing](docs/WINDOWS_TESTING.md).
 
 The **0.2.3 preview is published** from `76ef0a4`. Formatting, type checks, **96 default automated tests**, the production build, and **30 local Windows desktop checks** passed. [CI](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39132719890) passed on all three platforms, including all 30 hosted Windows desktop checks. Matching-source [native packaging](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39132722198) and [asset/checksum verification](https://github.com/ReaperXD67/lucentcue-desktop-ai/actions/runs/39132934335) passed for all five packages and the manifest. Model-picker checks use an isolated profile and mocked completions; search, image filtering, exact-ID persistence, keyboard/focus behavior, Dark/Light contrast, popup bounds, and stale-catalog protection passed.
 

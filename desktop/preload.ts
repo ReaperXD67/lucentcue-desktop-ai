@@ -20,6 +20,11 @@ const api: DesktopAPI = {
     ipcRenderer.on('app:captured', listener);
     return () => ipcRenderer.removeListener('app:captured', listener);
   },
+  onNewConversation(callback) {
+    const listener = () => callback();
+    ipcRenderer.on('app:new-conversation', listener);
+    return () => ipcRenderer.removeListener('app:new-conversation', listener);
+  },
   saveConversations: (conversations) => ipcRenderer.invoke('app:history', conversations),
   exportConversation: (conversation) => ipcRenderer.invoke('app:export', conversation),
   copyText: (text) => ipcRenderer.invoke('app:copy', text),

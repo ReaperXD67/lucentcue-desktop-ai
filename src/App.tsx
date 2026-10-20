@@ -2,6 +2,7 @@ import {
   memo,
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useRef,
   useState,
@@ -83,7 +84,7 @@ export default function App() {
   const [streaming, setStreaming] = useState(false);
   const [notice, setNotice] = useState('');
   const [captureBusy, setCaptureBusy] = useState(false);
-  const [captureFocusRequest, setCaptureFocusRequest] = useState(0);
+  const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [copied, setCopied] = useState('');
@@ -96,6 +97,7 @@ export default function App() {
   const settingsQueue = useRef<Promise<void>>(Promise.resolve());
   const pendingSettings = useRef(0);
   const activeRequest = useRef<string | null>(null);
+  const conversationGeneration = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const stickToBottom = useRef(true);
@@ -123,13 +125,15 @@ export default function App() {
   }, [settings.theme]);
 
   const load = useCallback(async () => {
+    const generation = conversationGeneration.current;
     try {
       setLoadError('');
       const next = await api.getState();
       settingsRef.current = next.settings;
-      setState(next);
+      const resetDuringLoad = generation !== conversationGeneration.current;
+      setState(resetDuringLoad ? { ...next, windowMode: 'companion' } : next);
       setConversations(next.conversations);
-      if (next.conversations[0]) {
+      if (!resetDuringLoad && next.conversations[0]) {
         setActiveId(next.conversations[0].id);
         setMessages(next.conversations[0].messages);
       }
@@ -153,10 +157,11 @@ export default function App() {
       scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'instant' });
   }, [companion]);
   useLayoutEffect(() => {
-    // Focus only for capture delivery, after React has revealed the composer.
-    // A separate token also handles captures rejected at the attachment limit.
-    if (captureFocusRequest > 0) composerRef.current?.focus();
-  }, [captureFocusRequest]);
+    // Focus after a capture or fresh chat has revealed the composer.
+    if (composerFocusRequest > 0) composerRef.current?.focus();
+  }, [composerFocusRequest, Boolean(state)]);
+  const handleNewConversation = useEffectEvent(() => newConversation(true));
+  useEffect(() => api.onNewConversation(() => handleNewConversation()), []);
   useEffect(
     () =>
       api.onCapture((attachment) => {
@@ -171,7 +176,7 @@ export default function App() {
           setNotice('Screenshot attached. Review it before sending.');
           return [...items, attachment];
         });
-        setCaptureFocusRequest((request) => request + 1);
+        setComposerFocusRequest((request) => request + 1);
       }),
     [],
   );
@@ -352,27 +357,60 @@ export default function App() {
     }
   }
   async function stop() {
+    const generation = conversationGeneration.current;
     const request = activeRequest.current;
     activeRequest.current = null;
     setStreaming(false);
     setMessages((items) =>
       items.at(-1)?.role === 'assistant' && !items.at(-1)?.content ? items.slice(0, -1) : items,
     );
-    if (request) await api.cancelChat(request).catch((error) => setNotice(errorText(error)));
+    if (request)
+      await api.cancelChat(request).catch((error) => {
+        if (generation === conversationGeneration.current) setNotice(errorText(error));
+      });
   }
-  async function newConversation() {
-    await stop();
+  function newConversation(openCompanion = false) {
+    const request = activeRequest.current;
+    activeRequest.current = null;
+    const generation = ++conversationGeneration.current;
+    // Preserve completed turns and any partial answer before the batched reset.
+    const retained = messages.filter(
+      (message) => message.role !== 'assistant' || message.content.length > 0,
+    );
+    if (retained.length) {
+      const conversation: Conversation = {
+        id: activeId,
+        title:
+          retained.find((message) => message.role === 'user')?.content.slice(0, 54) ||
+          'Screenshot conversation',
+        updatedAt: Date.now(),
+        messages: retained,
+      };
+      setConversations((items) =>
+        [conversation, ...items.filter((item) => item.id !== activeId)].slice(0, 40),
+      );
+    }
+    setStreaming(false);
     setActiveId(uid());
     setMessages([]);
     setDraft('');
     setAttachments([]);
     setPageContext(undefined);
     setNotice('');
+    setPanel(null);
+    setShowDown(false);
+    if (openCompanion) setState((current) => current && { ...current, windowMode: 'companion' });
     stickToBottom.current = true;
-    composerRef.current?.focus();
+    setComposerFocusRequest((value) => value + 1);
+    if (request)
+      void api.cancelChat(request).catch((error) => {
+        if (generation === conversationGeneration.current) setNotice(errorText(error));
+      });
   }
   async function openConversation(conversation: Conversation) {
+    const generation = ++conversationGeneration.current;
     await stop();
+    if (generation !== conversationGeneration.current) return;
     setActiveId(conversation.id);
     setMessages(conversation.messages);
     setAttachments([]);
@@ -382,9 +420,11 @@ export default function App() {
     stickToBottom.current = true;
   }
   async function capture() {
+    const generation = conversationGeneration.current;
     setCaptureBusy(true);
     try {
       const attachment = await api.captureScreen();
+      if (generation !== conversationGeneration.current) return;
       setAttachments((items) => {
         if (items.length >= 3) {
           setNotice('You can attach up to three screenshots. Remove one before capturing another.');
@@ -394,7 +434,11 @@ export default function App() {
         return [...items, attachment];
       });
     } catch (error) {
-      if (!errorText(error).includes('Screenshot cancelled.')) setNotice(errorText(error));
+      if (
+        generation === conversationGeneration.current &&
+        !errorText(error).includes('Screenshot cancelled.')
+      )
+        setNotice(errorText(error));
     } finally {
       setCaptureBusy(false);
     }
@@ -423,7 +467,7 @@ export default function App() {
       8
     ) {
       setNotice(
-        'A conversation can contain up to eight screenshots. Start a new conversation to attach more.',
+        `A conversation can contain up to eight screenshots. Start a new conversation (${settings.newConversationShortcut}) to attach more.`,
       );
       return;
     }
@@ -499,6 +543,7 @@ export default function App() {
     }
   }
   async function clearHistory() {
+    conversationGeneration.current += 1;
     const request = activeRequest.current;
     activeRequest.current = null;
     setMessages([]);
@@ -546,6 +591,7 @@ export default function App() {
           <button
             className="new-chat"
             aria-label="New conversation"
+            title={`New conversation · ${settings.newConversationShortcut}`}
             onClick={() => void newConversation()}
           >
             <Plus size={17} />
@@ -680,7 +726,7 @@ export default function App() {
                 <button
                   className="icon-button"
                   aria-label="New conversation"
-                  title="New conversation"
+                  title={`New conversation · ${settings.newConversationShortcut}`}
                   onClick={() => void newConversation()}
                 >
                   <Plus size={17} />

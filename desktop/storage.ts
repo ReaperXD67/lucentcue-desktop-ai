@@ -13,7 +13,7 @@ import type {
 
 export const PROVIDERS: Provider[] = ['openrouter', 'openai', 'gemini'];
 export const HISTORY_MAX_BYTES = 8_000_000;
-const SETTINGS_VERSION = 2;
+const SETTINGS_VERSION = 3;
 const SCREENSHOT_NOTE = '\n\n[Screenshot attached; image not saved to history.]';
 export interface EncryptionAdapter {
   isEncryptionAvailable(): boolean;
@@ -122,12 +122,24 @@ export function validateSettings(value: unknown): Settings {
   const capture = shortcut(input.captureShortcut);
   if (toggle.toLowerCase() === capture.toLowerCase())
     throw new Error('Toggle and screenshot shortcuts must be different.');
+  // A pre-existing Alt+N binding belongs to the user. Introduce only the new
+  // shortcut on upgrade, choosing an unused alternative rather than resetting
+  // the entire settings file or changing either of the existing bindings.
+  const newConversation =
+    input.newConversationShortcut === undefined
+      ? [DEFAULT_SETTINGS.newConversationShortcut, 'Alt+Shift+N', 'Control+Alt+N']
+          .map(shortcut)
+          .find((candidate) => candidate !== toggle && candidate !== capture)!
+      : shortcut(input.newConversationShortcut);
+  if (newConversation === toggle || newConversation === capture)
+    throw new Error('Show/hide, screenshot, and new conversation shortcuts must be different.');
   return {
     mode: input.mode,
     provider: input.mode === 'free' ? 'openrouter' : provider,
     model,
     shortcut: toggle,
     captureShortcut: capture,
+    newConversationShortcut: newConversation,
     alwaysOnTop: input.alwaysOnTop as boolean,
     captureProtection,
     showTrayIcon,
@@ -300,16 +312,26 @@ export class DesktopStorage {
       const loaded = validateSettings({
         ...DEFAULT_SETTINGS,
         ...persisted,
+        newConversationShortcut: persisted.newConversationShortcut,
       });
       // Upgrade the former default once. User-chosen shortcuts remain unchanged;
       // validation/normalization alone never rewrites a newly selected Alt+R.
       this.settings =
         persisted.settingsVersion === undefined &&
         loaded.shortcut === 'Alt+R' &&
-        loaded.captureShortcut !== DEFAULT_SETTINGS.shortcut
+        loaded.captureShortcut !== DEFAULT_SETTINGS.shortcut &&
+        loaded.newConversationShortcut !== DEFAULT_SETTINGS.shortcut
           ? { ...loaded, shortcut: DEFAULT_SETTINGS.shortcut }
           : loaded;
-      if (persisted.settingsVersion === undefined)
+      if (
+        persisted.newConversationShortcut === undefined &&
+        loaded.newConversationShortcut !== DEFAULT_SETTINGS.newConversationShortcut
+      )
+        this.notice = `Your existing shortcuts were preserved. New conversation uses ${loaded.newConversationShortcut}; change it in Settings if preferred.`;
+      if (
+        persisted.settingsVersion !== SETTINGS_VERSION ||
+        persisted.newConversationShortcut === undefined
+      )
         await atomicJson(join(this.directory, 'settings.json'), {
           ...this.settings,
           settingsVersion: SETTINGS_VERSION,

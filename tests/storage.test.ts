@@ -269,6 +269,100 @@ describe('IPC payload validators', () => {
     );
     expect(() => validateSettings({ ...DEFAULT_SETTINGS, shortcut: 'R' })).toThrow('shortcut');
   });
+  it('defaults the new conversation shortcut and rejects normalized collisions across all three actions', () => {
+    const { newConversationShortcut: _removed, ...legacy } = DEFAULT_SETTINGS;
+    expect(validateSettings(legacy).newConversationShortcut).toBe('Alt+N');
+    expect(
+      validateSettings({
+        ...DEFAULT_SETTINGS,
+        newConversationShortcut: 'shift+ctrl+n',
+      }).newConversationShortcut,
+    ).toBe('Control+Shift+N');
+    for (const shortcuts of [
+      { newConversationShortcut: 'option+w' },
+      { newConversationShortcut: 'shift+alt+s' },
+      { shortcut: 'ctrl+shift+n', newConversationShortcut: 'shift+control+N' },
+      { captureShortcut: 'shift+ctrl+n', newConversationShortcut: 'control+shift+N' },
+    ])
+      expect(() => validateSettings({ ...DEFAULT_SETTINGS, ...shortcuts })).toThrow('different');
+    for (const invalid of ['', 'N', null, {}, 'Alt+Alt+N'])
+      expect(() =>
+        validateSettings({ ...DEFAULT_SETTINGS, newConversationShortcut: invalid }),
+      ).toThrow('hortcut');
+  });
+  it.each([
+    {
+      shortcut: 'Alt+N',
+      captureShortcut: 'Alt+S',
+      expected: 'Alt+Shift+N',
+    },
+    {
+      shortcut: 'Alt+W',
+      captureShortcut: 'Alt+N',
+      expected: 'Alt+Shift+N',
+    },
+    {
+      shortcut: 'Alt+N',
+      captureShortcut: 'Alt+Shift+N',
+      expected: 'Alt+Control+N',
+    },
+  ])(
+    'adds only an unused new-conversation shortcut to legacy settings: %o',
+    async ({ shortcut, captureShortcut, expected }) => {
+      const { newConversationShortcut: _removed, ...legacy } = DEFAULT_SETTINGS;
+      const oldSettings = {
+        ...legacy,
+        mode: 'byok',
+        provider: 'openrouter',
+        model: 'deepseek/deepseek-v4.1-flash',
+        shortcut,
+        captureShortcut,
+        theme: 'light',
+        companionOpacity: 0.85,
+        captureProtection: true,
+        showTrayIcon: false,
+        settingsVersion: 2,
+      };
+      const first = new DesktopStorage(directory, secure);
+      await first.init();
+      await first.setKey('openrouter', 'test-key-preserved');
+      await writeFile(join(directory, 'settings.json'), JSON.stringify(oldSettings));
+      const upgraded = new DesktopStorage(directory, secure);
+      await upgraded.init();
+      const { settingsVersion: _version, ...preservedSettings } = oldSettings;
+      expect(upgraded.settings).toMatchObject({
+        ...preservedSettings,
+        newConversationShortcut: expected,
+      });
+      expect(upgraded.key('openrouter')).toBe('test-key-preserved');
+      expect(upgraded.notice).toContain(`New conversation uses ${expected}`);
+      const persisted = JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8'));
+      expect(persisted).toMatchObject({
+        ...preservedSettings,
+        newConversationShortcut: expected,
+      });
+      expect(persisted.settingsVersion).toBe(3);
+      const reloaded = new DesktopStorage(directory, secure);
+      await reloaded.init();
+      expect(reloaded.settings).toEqual(upgraded.settings);
+      expect(reloaded.keyStatus().openrouter).toBe(true);
+    },
+  );
+  it('persists an explicit custom new conversation shortcut without changing other preferences', async () => {
+    const storage = new DesktopStorage(directory, secure);
+    await storage.init();
+    const settings = validateSettings({
+      ...DEFAULT_SETTINGS,
+      shortcut: 'Alt+R',
+      captureShortcut: 'Alt+S',
+      newConversationShortcut: 'Control+Shift+N',
+      captureProtection: true,
+    });
+    await storage.saveSettings(settings);
+    const reloaded = new DesktopStorage(directory, secure);
+    await reloaded.init();
+    expect(reloaded.settings).toEqual(settings);
+  });
   it('defaults the visible tray on for legacy settings and persists an explicit disabled choice', async () => {
     const { showTrayIcon: _removed, ...legacy } = DEFAULT_SETTINGS;
     expect(validateSettings(legacy).showTrayIcon).toBe(true);
@@ -293,7 +387,7 @@ describe('IPC payload validators', () => {
     expect(storage.settings.shortcut).toBe('Alt+W');
     expect(storage.settings.showTrayIcon).toBe(true);
     const migrated = JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8'));
-    expect(migrated.settingsVersion).toBe(2);
+    expect(migrated.settingsVersion).toBe(3);
     await storage.saveSettings({ ...storage.settings, shortcut: 'Alt+R' });
     const reloaded = new DesktopStorage(directory, secure);
     await reloaded.init();

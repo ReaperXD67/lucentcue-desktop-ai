@@ -1,5 +1,17 @@
 # LucentCue preview notes
 
+## 0.2.4 — new companion conversation shortcut (source only)
+
+**Alt+N** opens, reveals, and focuses a fresh companion from the workspace, companion, or a hidden window. It stops any active response, clears the unsent text/images/page context, and keeps completed turns and partial answers in the session conversation list. Settings exposes **New conversation shortcut** alongside show/hide and capture; failed changes restore all three bindings. Existing custom shortcuts survive migration, including an older Alt+N binding: the new action chooses Alt+Shift+N or Control+Alt+N if necessary and displays a notice.
+
+The global action is ignored while a screenshot/chooser is active. Renderer capture promises and pending history selection are guarded against changing a newer conversation; late answer events are rejected by request ID. Focus waits for the new composer to render.
+
+The three-image-per-message and eight-image-per-conversation safeguards remain. Follow-ups resend prior images, so the limits bound request size, session memory, and repeated image input costs; model/provider limits still apply independently.
+
+Formatting, type checks, **101 default automated tests**, the production build, and **34 local Windows desktop checks** passed. The isolated-profile suite invokes actual registered main-process callbacks with mock context/completions and verifies reset/focus, hidden recovery, three-way shortcut configuration/rollback, partial stream cancellation, late-event rejection, and delayed history-selection cancellation. No real key, image capture, browser session, or provider completion was used. Actual installed Alt+N keypress behavior remains unverified.
+
+This update is source only. No 0.2.4 installer or native package has been published, and the tested PC remains on installed 0.2.2. The existing 0.2.3 packages and signing status are unchanged.
+
 ## 0.2.3 — readable searchable model picker
 
 Published as [v0.2.3-preview.1](https://github.com/ReaperXD67/lucentcue-desktop-ai/releases/tag/v0.2.3-preview.1) from source `76ef0a4f1fce29525fd6b8fd518a0cdd11d45f41`, with all five unsigned native packages and `SHA256SUMS.txt`. Windows Application Control blocked the installer on the tested PC before startup; the installed app remains 0.2.2.

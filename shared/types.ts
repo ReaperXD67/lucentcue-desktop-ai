@@ -8,6 +8,7 @@ export interface Settings {
   model: string;
   shortcut: string;
   captureShortcut: string;
+  newConversationShortcut: string;
   alwaysOnTop: boolean;
   captureProtection: boolean;
   showTrayIcon: boolean;
@@ -22,6 +23,7 @@ export const DEFAULT_SETTINGS: Settings = {
   model: 'openrouter/free',
   shortcut: 'Alt+W',
   captureShortcut: 'Alt+Shift+S',
+  newConversationShortcut: 'Alt+N',
   alwaysOnTop: false,
   captureProtection: false,
   showTrayIcon: true,
@@ -103,6 +105,7 @@ export interface DesktopAPI {
   onChat(callback: (event: ChatEvent) => void): () => void;
   captureScreen(): Promise<Attachment>;
   onCapture(callback: (attachment: Attachment) => void): () => void;
+  onNewConversation(callback: () => void): () => void;
   saveConversations(conversations: Conversation[]): Promise<void>;
   exportConversation(conversation: Conversation): Promise<boolean>;
   copyText(text: string): Promise<void>;

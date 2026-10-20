@@ -102,7 +102,7 @@ try {
   // UI actions, streaming parser, and shortcuts run in the actual application.
   // Reload discards any catalog request that started before this override.
   await application.evaluate(`(() => {
-    globalThis.__lucentcueSmokeRequests = { catalogs: 0, completions: 0, holding: 0, aborted: 0, settingsHeld: 0 };
+    globalThis.__lucentcueSmokeRequests = { catalogs: 0, completions: 0, holding: 0, aborted: 0, settingsHeld: 0, cancellationsHeld: 0, cancellationsReleased: 0 };
     globalThis.__lucentcueSmokeMode = 'stream';
     globalThis.fetch = async (input, init) => {
       const url = typeof input === 'string' ? input : input.url || String(input);
@@ -149,6 +149,7 @@ try {
             if (signal && signal.aborted) { onAbort(); return; }
             if (mode === 'hold') { globalThis.__lucentcueSmokeRequests.holding++; return; }
             controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"Start with one clear task. "}}]}\\n\\n'));
+            if (mode === 'hold-after-token') { globalThis.__lucentcueSmokeRequests.holding++; return; }
             timer = setTimeout(() => {
               if (stopped) return;
               controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"Keep the next action small."},"finish_reason":"stop"}]}\\n\\ndata: [DONE]\\n\\n'));
@@ -180,7 +181,10 @@ try {
   checked('Real sandboxed preload bridge with no renderer Node.js access');
 
   const readState = () => renderer!.evaluate(() => window.desktop!.getState());
-  async function waitForMainCounter(name: 'holding' | 'aborted' | 'settingsHeld', minimum: number) {
+  async function waitForMainCounter(
+    name: 'holding' | 'aborted' | 'settingsHeld' | 'cancellationsHeld' | 'cancellationsReleased',
+    minimum: number,
+  ) {
     for (let attempt = 0; attempt < 80; attempt++) {
       const counters = (await application!.evaluate(
         'globalThis.__lucentcueSmokeRequests',
@@ -199,6 +203,7 @@ try {
 
   assert.equal(first.windowMode, 'companion');
   assert.equal(first.settings.shortcut, 'Alt+W');
+  assert.equal(first.settings.newConversationShortcut, 'Alt+N');
   assert.equal(first.settings.theme, 'dark');
   assert.equal(first.settings.companionOpacity, 1);
   assert.equal(first.version, packageVersion);
@@ -220,10 +225,15 @@ try {
     }
     return available;
   });
-  assert.ok(available.length >= 2, 'Two available test shortcuts are required.');
+  assert.ok(available.length >= 3, 'Three available test shortcuts are required.');
   const initialTestSettings = await renderer.evaluate(
     (settings) => window.desktop!.saveSettings(settings),
-    { ...first.settings, shortcut: available[0], captureShortcut: available[1] },
+    {
+      ...first.settings,
+      shortcut: available[0],
+      captureShortcut: available[1],
+      newConversationShortcut: available[2],
+    },
   );
   await renderer.reload();
   await renderer.getByRole('textbox', { name: 'Message LucentCue' }).waitFor();
@@ -520,7 +530,10 @@ try {
   );
 
   await renderer.getByLabel('Show / hide shortcut', { exact: true }).fill(available[0]);
-  await renderer.getByLabel('Screenshot shortcut', { exact: true }).fill(available[1]);
+  // Swap the two non-toggle bindings through Settings, proving the new field
+  // saves a changed accelerator and native callbacks follow their actions.
+  await renderer.getByLabel('Screenshot shortcut', { exact: true }).fill(available[2]);
+  await renderer.getByLabel('New conversation shortcut', { exact: true }).fill(available[1]);
   await renderer.getByRole('checkbox', { name: 'Keep window on top' }).check();
   await theme.selectOption('light');
   if (first.appearanceOpacitySupported) {
@@ -543,16 +556,23 @@ try {
     saved.settings.captureShortcut,
   );
   assert.equal(
+    await renderer.getByLabel('New conversation shortcut', { exact: true }).inputValue(),
+    saved.settings.newConversationShortcut,
+  );
+  assert.equal(
     await renderer.getByRole('button', { name: 'Save settings', exact: true }).isDisabled(),
     true,
   );
   assert.equal(await theme.inputValue(), 'light');
   assert.equal(await opacity.inputValue(), first.appearanceOpacitySupported ? '85' : '100');
   assert.ok(saved.settings.shortcut.endsWith(available[0].split('+').at(-1)!));
+  assert.ok(saved.settings.captureShortcut.endsWith(available[2].split('+').at(-1)!));
+  assert.ok(saved.settings.newConversationShortcut.endsWith(available[1].split('+').at(-1)!));
   const registered = await application.evaluate(
     ({ globalShortcut, BrowserWindow }, settings) => ({
       toggle: globalShortcut.isRegistered(settings.shortcut),
       capture: globalShortcut.isRegistered(settings.captureShortcut),
+      newConversation: globalShortcut.isRegistered(settings.newConversationShortcut),
       onTop: BrowserWindow.getAllWindows()[0].isAlwaysOnTop(),
     }),
     saved.settings,
@@ -564,7 +584,7 @@ try {
       BrowserWindow.getAllWindows()[0].isAlwaysOnTop(),
     );
   }
-  assert.deepEqual(registered, { toggle: true, capture: true, onTop: true });
+  assert.deepEqual(registered, { toggle: true, capture: true, newConversation: true, onTop: true });
   await theme.selectOption('dark');
   if (first.appearanceOpacitySupported) {
     await opacity.focus();
@@ -590,17 +610,41 @@ try {
   await application.evaluate(({ globalShortcut }, settings) => {
     globalShortcut.unregister(settings.shortcut);
     globalShortcut.unregister(settings.captureShortcut);
+    globalShortcut.unregister(settings.newConversationShortcut);
+    // Observe the callback passed to the real native registrar. Calling that
+    // callback below exercises global delivery without injecting OS keystrokes
+    // into an unrelated, installed copy of LucentCue.
+    const fixture = globalThis as unknown as {
+      __lucentcueSmokeRegister: typeof globalShortcut.register;
+      __lucentcueSmokeNewConversation?: () => void;
+    };
+    fixture.__lucentcueSmokeRegister = globalShortcut.register;
+    globalShortcut.register = (accelerator, callback) => {
+      if (accelerator === settings.newConversationShortcut)
+        fixture.__lucentcueSmokeNewConversation = callback;
+      return fixture.__lucentcueSmokeRegister.call(globalShortcut, accelerator, callback);
+    };
   }, saved.settings);
-  await renderer.evaluate((settings) => window.desktop!.saveSettings(settings), saved.settings);
+  try {
+    await renderer.evaluate((settings) => window.desktop!.saveSettings(settings), saved.settings);
+  } finally {
+    await application.evaluate(({ globalShortcut }) => {
+      const fixture = globalThis as unknown as {
+        __lucentcueSmokeRegister: typeof globalShortcut.register;
+      };
+      globalShortcut.register = fixture.__lucentcueSmokeRegister;
+    });
+  }
   assert.deepEqual(
     await application.evaluate(
       ({ globalShortcut }, settings) => [
         globalShortcut.isRegistered(settings.shortcut),
         globalShortcut.isRegistered(settings.captureShortcut),
+        globalShortcut.isRegistered(settings.newConversationShortcut),
       ],
       saved.settings,
     ),
-    [true, true],
+    [true, true, true],
   );
   checked('Saving unchanged shortcuts recovers bindings after a registration conflict clears');
 
@@ -683,17 +727,18 @@ try {
       ({ globalShortcut }, settings) => [
         globalShortcut.isRegistered(settings.shortcut),
         globalShortcut.isRegistered(settings.captureShortcut),
+        globalShortcut.isRegistered(settings.newConversationShortcut),
       ],
       saved.settings,
     );
-    assert.deepEqual(preserved, [true, true]);
+    assert.deepEqual(preserved, [true, true, true]);
   } finally {
     await application.evaluate(
       ({ globalShortcut }, shortcut) => globalShortcut.unregister(shortcut),
       collision,
     );
   }
-  checked('Shortcut registration failure preserves both prior bindings and saved settings');
+  checked('Shortcut registration failure preserves all three prior bindings and saved settings');
   await renderer.getByRole('button', { name: 'Close settings' }).click();
 
   await renderer.getByRole('button', { name: 'Bring your key', exact: true }).click();
@@ -977,6 +1022,28 @@ try {
   checked('Free and bring-your-own-key modes switch through real saved settings');
 
   const composer = renderer.getByRole('textbox', { name: 'Message LucentCue' });
+  const syntheticImage =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
+  async function invokeNewConversationShortcut() {
+    await application!.evaluate(`(() => {
+      if (typeof globalThis.__lucentcueSmokeNewConversation !== 'function')
+        throw new Error('The registered new-conversation callback was not observed.');
+      globalThis.__lucentcueSmokeNewConversation();
+    })()`);
+    await renderer!.getByRole('button', { name: 'Open workspace settings', exact: true }).waitFor();
+    await renderer!.waitForFunction(() => {
+      const composer = document.querySelector<HTMLTextAreaElement>('#message-input');
+      return composer?.value === '' && document.activeElement === composer;
+    });
+    assert.equal((await readState()).windowMode, 'companion');
+    assert.equal(
+      await application!.evaluate(({ BrowserWindow }) => {
+        const window = BrowserWindow.getAllWindows()[0];
+        return window.isVisible() && !window.isMinimized();
+      }),
+      true,
+    );
+  }
   await composer.fill('Draft that should clear when a new conversation starts.');
   await renderer.getByRole('button', { name: /^New conversation/ }).click();
   assert.equal(await composer.inputValue(), '');
@@ -1004,6 +1071,64 @@ try {
   checked(
     'New conversation clears the draft; sending without a key opens Settings without a completion request',
   );
+
+  await renderer.getByRole('button', { name: 'Close settings' }).click();
+  // A harmless page snapshot traverses the actual preload and Browser panel.
+  // WebContents-scoped IPC keeps the fixture in this temporary process and is
+  // removed before invoking the shortcut; no browser or network is opened.
+  await application.evaluate(({ BrowserWindow }) => {
+    BrowserWindow.getAllWindows()[0].webContents.ipc.handle('browser:read', () => ({
+      url: 'https://example.com/new-conversation-fixture',
+      title: 'New conversation context fixture',
+      text: 'Harmless local-only reference that must not reach the next conversation.',
+      fields: [],
+    }));
+  });
+  try {
+    await renderer.getByRole('button', { name: 'Browser assist', exact: true }).click();
+    await renderer.getByRole('button', { name: 'Read page', exact: true }).click();
+    await renderer.getByRole('button', { name: 'Attach to question', exact: true }).click();
+    await renderer.getByRole('button', { name: 'Close browser panel', exact: true }).click();
+    await renderer
+      .getByText('Page attached: New conversation context fixture', { exact: true })
+      .waitFor();
+  } finally {
+    await application.evaluate(({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0].webContents.ipc.removeHandler('browser:read');
+    });
+  }
+  await deliverCapture('new-conversation-synthetic-capture');
+  await renderer
+    .getByRole('button', { name: 'Remove new-conversation-synthetic-capture.png', exact: true })
+    .waitFor();
+  await composer.fill('A draft and attachments from the old conversation.');
+  await renderer.getByRole('button', { name: 'Settings', exact: true }).click();
+  await renderer.getByRole('heading', { name: 'Make it yours' }).waitFor();
+  await invokeNewConversationShortcut();
+  assert.equal(await renderer.locator('.settings-panel, .browser-panel').count(), 0);
+  assert.equal(await renderer.getByRole('img', { name: 'Screenshot preview' }).count(), 0);
+  assert.equal(await renderer.getByRole('button', { name: 'Remove page context' }).count(), 0);
+  assert.equal(await renderer.locator('.message').count(), 0);
+  assert.equal(await application.evaluate('globalThis.__lucentcueSmokeRequests.completions'), 0);
+  checked(
+    'Registered new-chat shortcut opens a focused companion from workspace Settings and clears draft, screenshots, and page context without sending',
+  );
+
+  await composer.fill('Another companion-only draft.');
+  await invokeNewConversationShortcut();
+  await composer.fill('A hidden companion draft.');
+  await renderer.evaluate(() => window.desktop!.hide());
+  assert.equal(
+    await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isVisible()),
+    false,
+  );
+  await invokeNewConversationShortcut();
+  assert.equal(await application.evaluate('globalThis.__lucentcueSmokeRequests.completions'), 0);
+  checked(
+    'Registered new-chat shortcut also resets an existing companion and reveals a hidden app',
+  );
+  await renderer.getByRole('button', { name: 'Open workspace settings', exact: true }).click();
+  await renderer.getByRole('heading', { name: 'Make it yours' }).waitFor();
 
   // A plainly fake key remains inside this temporary profile. Every completion
   // below is a local Response stream created by the main-process fetch override.
@@ -1083,6 +1208,152 @@ try {
     'Stopping before the first token aborts the provider stream and removes the waiting placeholder',
   );
 
+  await renderer.evaluate(() => {
+    const fixture = globalThis as unknown as {
+      __lucentcueSmokeCancelledChat?: string;
+      __lucentcueSmokeRemoveChatObserver?: () => void;
+    };
+    fixture.__lucentcueSmokeRemoveChatObserver = window.desktop!.onChat((event) => {
+      fixture.__lucentcueSmokeCancelledChat = event.id;
+    });
+  });
+  try {
+    await application.evaluate(`globalThis.__lucentcueSmokeMode = 'hold-after-token'`);
+    const interruptedPrompt = 'Cancel this answer by starting a new companion conversation.';
+    await renderer.getByRole('button', { name: /^New conversation/ }).click();
+    await composer.fill(interruptedPrompt);
+    await renderer.getByRole('button', { name: 'Send message', exact: true }).click();
+    await waitForMainCounter('holding', 2);
+    await renderer
+      .locator('.message.assistant')
+      .getByText('Start with one clear task.', { exact: true })
+      .waitFor();
+    const beforeNewChat = await application.evaluate(
+      'globalThis.__lucentcueSmokeRequests.completions',
+    );
+    await renderer.evaluate(() => {
+      delete (globalThis as unknown as { __lucentcueSmokeCancelledChat?: string })
+        .__lucentcueSmokeCancelledChat;
+    });
+    await invokeNewConversationShortcut();
+    await waitForMainCounter('aborted', 2);
+    await renderer.getByRole('button', { name: 'Stop generating' }).waitFor({ state: 'detached' });
+    await renderer.waitForFunction(() =>
+      Boolean(
+        (globalThis as unknown as { __lucentcueSmokeCancelledChat?: string })
+          .__lucentcueSmokeCancelledChat,
+      ),
+    );
+    const cancelledId = await renderer.evaluate(
+      () =>
+        (globalThis as unknown as { __lucentcueSmokeCancelledChat: string })
+          .__lucentcueSmokeCancelledChat,
+    );
+    await application.evaluate(({ BrowserWindow }, id) => {
+      const contents = BrowserWindow.getAllWindows()[0].webContents;
+      contents.send('chat:event', { id, type: 'delta', text: 'STALE ANSWER MUST NOT APPEAR' });
+      contents.send('chat:event', { id, type: 'done' });
+    }, cancelledId);
+    // IPC ordering alone is insufficient: wait for React to process both events.
+    await delay(100);
+    assert.equal(await renderer.getByText('STALE ANSWER MUST NOT APPEAR').count(), 0);
+    assert.equal(await renderer.locator('.message').count(), 0);
+    assert.equal(await composer.inputValue(), '');
+    assert.equal(
+      await application.evaluate('globalThis.__lucentcueSmokeRequests.completions'),
+      beforeNewChat,
+    );
+    await renderer.getByRole('button', { name: 'Open full workspace', exact: true }).click();
+    await renderer
+      .getByRole('button', { name: interruptedPrompt.slice(0, 54), exact: true })
+      .click();
+    await renderer.getByText(interruptedPrompt, { exact: true }).waitFor();
+    await renderer
+      .locator('.message.assistant')
+      .getByText('Start with one clear task.', { exact: true })
+      .waitFor();
+    await renderer
+      .getByRole('button', { name: 'Give me a useful desktop plan.', exact: true })
+      .click();
+    await renderer
+      .getByText('Start with one clear task. Keep the next action small.', { exact: true })
+      .waitFor();
+    assert.equal((await readState()).settings.saveHistory, false);
+    assert.deepEqual((await readState()).conversations, []);
+    checked(
+      'New-chat shortcut cancels an answer, rejects late deltas, sends nothing, and retains interrupted and earlier chats in memory with disk history off',
+    );
+  } finally {
+    await renderer.evaluate(() => {
+      (
+        globalThis as unknown as { __lucentcueSmokeRemoveChatObserver?: () => void }
+      ).__lucentcueSmokeRemoveChatObserver?.();
+    });
+  }
+
+  // Delay only the cancellation acknowledgement inside the test window. This
+  // leaves openConversation awaiting IPC while the real native new-chat
+  // callback aborts its active controller and delivers a fresh companion.
+  await application.evaluate(({ BrowserWindow }) => {
+    const fixture = globalThis as unknown as {
+      __lucentcueSmokeRequests: { cancellationsHeld: number; cancellationsReleased: number };
+      __lucentcueSmokeReleaseCancel?: () => void;
+    };
+    const cancelled = new Promise<void>((release) => {
+      fixture.__lucentcueSmokeReleaseCancel = release;
+    });
+    BrowserWindow.getAllWindows()[0].webContents.ipc.handle('chat:cancel', async () => {
+      fixture.__lucentcueSmokeRequests.cancellationsHeld++;
+      await cancelled;
+      fixture.__lucentcueSmokeRequests.cancellationsReleased++;
+    });
+  });
+  try {
+    await application.evaluate(`globalThis.__lucentcueSmokeMode = 'hold'`);
+    await renderer.getByRole('button', { name: /^New conversation/ }).click();
+    await composer.fill('Hold this request while an older history item is opening.');
+    await renderer.getByRole('button', { name: 'Send message', exact: true }).click();
+    await waitForMainCounter('holding', 3);
+    await renderer
+      .getByRole('button', { name: 'Give me a useful desktop plan.', exact: true })
+      .click();
+    await waitForMainCounter('cancellationsHeld', 1);
+    const completionCountBeforeReset = await application.evaluate(
+      'globalThis.__lucentcueSmokeRequests.completions',
+    );
+    await invokeNewConversationShortcut();
+    await waitForMainCounter('aborted', 3);
+    await application.evaluate(`globalThis.__lucentcueSmokeReleaseCancel()`);
+    await waitForMainCounter('cancellationsReleased', 1);
+    // Allow the renderer's awaiting history selection to continue after IPC.
+    await delay(100);
+    assert.equal((await readState()).windowMode, 'companion');
+    assert.equal(await composer.inputValue(), '');
+    assert.equal(await renderer.locator('.message').count(), 0);
+    assert.equal(await renderer.getByRole('button', { name: 'Stop generating' }).count(), 0);
+    assert.equal(
+      await renderer.evaluate(
+        () => document.activeElement === document.getElementById('message-input'),
+      ),
+      true,
+    );
+    assert.equal(
+      await application.evaluate('globalThis.__lucentcueSmokeRequests.completions'),
+      completionCountBeforeReset,
+    );
+    checked(
+      'Fresh companion survives an older history selection that resumes after delayed cancellation acknowledgement',
+    );
+  } finally {
+    await application.evaluate(({ BrowserWindow }) => {
+      const fixture = globalThis as unknown as { __lucentcueSmokeReleaseCancel?: () => void };
+      fixture.__lucentcueSmokeReleaseCancel?.();
+      BrowserWindow.getAllWindows()[0].webContents.ipc.removeHandler('chat:cancel');
+      delete fixture.__lucentcueSmokeReleaseCancel;
+    });
+  }
+  await renderer.getByRole('button', { name: 'Open full workspace', exact: true }).click();
+
   await renderer.getByRole('button', { name: /^Settings/ }).click();
   await renderer.getByRole('checkbox', { name: 'Save history on this device' }).check();
   await renderer.getByRole('button', { name: 'Save settings', exact: true }).click();
@@ -1115,12 +1386,12 @@ try {
   await renderer.getByRole('button', { name: /^New conversation/ }).click();
   await composer.fill('This pending conversation must be deleted.');
   await renderer.getByRole('button', { name: 'Send message', exact: true }).click();
-  await waitForMainCounter('holding', 2);
+  await waitForMainCounter('holding', 4);
   await renderer.getByRole('button', { name: /^Settings/ }).click();
   await renderer.getByRole('button', { name: 'Delete saved history', exact: true }).click();
   await renderer.getByRole('button', { name: 'Yes, delete history', exact: true }).click();
   await renderer.getByRole('button', { name: 'Delete saved history', exact: true }).waitFor();
-  await waitForMainCounter('aborted', 2);
+  await waitForMainCounter('aborted', 4);
   // Verify after the application's 400ms writer debounce can fire again.
   await delay(650);
   assert.deepEqual((await readState()).conversations, []);
@@ -1139,6 +1410,7 @@ try {
     ...first.settings,
     shortcut: saved.settings.shortcut,
     captureShortcut: saved.settings.captureShortcut,
+    newConversationShortcut: saved.settings.newConversationShortcut,
   });
   await renderer.reload();
   await composer.waitFor();
@@ -1267,8 +1539,6 @@ try {
   const completionCountBeforeCapture = await application.evaluate(
     'globalThis.__lucentcueSmokeRequests.completions',
   );
-  const syntheticImage =
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=';
   async function deliverCapture(id: string) {
     await application!.evaluate(
       ({ BrowserWindow }, attachment) =>

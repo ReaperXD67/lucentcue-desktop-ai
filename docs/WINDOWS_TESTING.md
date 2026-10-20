@@ -1,5 +1,13 @@
 # Windows installation and privacy test record
 
+## 0.2.4 new-companion shortcut — source checks, 20 October 2026
+
+The source update adds configurable Alt+N to open a fresh companion. Desktop tests use an isolated temporary profile and uncommon registered test bindings, mock image/browser context, and mocked provider streams. They invoke the actual registered main-process new-chat callback; they do not inject an Alt+N OS keypress into the installed app. No personal key, actual screenshot, browser session, or live completion is used.
+
+Formatting, type checks, **101 default automated tests**, the production build, and **34 local Windows desktop checks** passed. Source validation covers three-way shortcut swaps, collision rejection and registration rollback, Settings-to-companion reset, repeated and hidden companion reveal, composer focus, partial-response cancellation, stale stream rejection, and previous conversation retention with disk history disabled. A delayed cancellation-acknowledgement regression confirms a pending history selection cannot overwrite the new companion. This work does not retest external capture privacy or the Scaler stream.
+
+No 0.2.4 package is published or installed. Actual installed Alt+N keypress behavior remains unverified; the installed 0.2.2 app does not have the new binding.
+
 ## Current installed connection and capture state — 18 October 2026
 
 The actual installed executable remains **0.2.2.0**. Its UI shows a configured OpenRouter key and **DeepSeek V4.1 Flash · vision** under Bring your key. One harmless live text request, “Reply with exactly OK.”, returned “OK”. No key was read or exposed, and no screenshot, image, or page attachment was sent. This confirms text access; vision-answer quality remains unverified.

@@ -74,11 +74,14 @@ App-only screenshot from the isolated 0.2.3 test profile; the shortcut shown is 
 | --- | --- | --- |
 | Show or hide LucentCue | `Alt+W` | Global, while LucentCue is running |
 | Capture a display | `Alt+Shift+S` | Global, while LucentCue is running |
+| Open a fresh companion chat | `Alt+N` | Global; 0.2.4 source or a future package required |
 | Send a message | `Enter` | Message input focused |
 | Insert a new line | `Shift+Enter` | Message input focused |
 | Hide the current window | `Alt+F4` | Standard Windows close action; does not quit LucentCue |
 
-Change the two global shortcuts in **Settings → Workspace**, then select **Save settings**. Use a modifier and key, such as `Control+Shift+Space`. If another app owns the combination, choose another; failed changes restore the previous bindings. When upgrading, the old default `Alt+R` becomes `Alt+W`; custom bindings are kept. New conversation, Search conversations, Export, and Stop generating are UI buttons without dedicated app shortcuts.
+In 0.2.4 source, **Alt+N** opens a fresh companion from the full workspace, companion, or hidden window and focuses its empty text box. It stops an active answer and clears the unsent draft, screenshot attachments, and attached browser context. Previous messages and partial answers remain available from the workspace's conversation list for this session; saving history to disk is still optional. During an active screenshot/chooser, Alt+N is ignored so a capture cannot land in a different chat; press it again after capture finishes. Installed 0.2.2 and published 0.2.3 do not have this shortcut.
+
+Change the global shortcuts in **Settings → Workspace**, then select **Save settings**. Use a modifier and key, such as `Control+Shift+Space`. If another app owns the combination, choose another; failed changes restore the previous bindings. Custom bindings are kept on upgrade. If a previous binding already owns Alt+N, the new-chat default uses Alt+Shift+N or Control+Alt+N and Settings shows a notice. Search conversations, Export, and Stop generating remain UI buttons without dedicated app shortcuts.
 
 The tested PC's current user preferences are Light, 100% opacity, `Alt+W` show/hide, `Alt+Shift+S` capture, tray icon on, and history off. Earlier Dark/85%/custom `Alt+S` checks in the test record are historical preferences, not the current setup.
 
@@ -91,6 +94,8 @@ Turn **Settings → Workspace → Show tray icon** off and select **Save setting
 Use the screenshot button or capture shortcut, select a display if asked, and review its attachment thumbnail. Remove it with its **X** before sending if it contains anything private. Choose a model marked **vision**. Capturing alone does not send the image; sending a message does. Images are omitted from saved history and Markdown exports.
 
 The global shortcut restores LucentCue and attaches the screenshot directly to the text box area; type your question beside it and select **Send**. Up to three screenshots can be attached. LucentCue briefly hides its own window before capture so its UI is omitted from that image. The capture path uses an in-memory image, without writing an image file or placing it on the clipboard. This does not make capture undetectable to the operating system or monitoring software, and OS prompts or indicators may still appear. In 0.2.2, shortcut delivery also closes an overlapping Settings/Browser panel and focuses the composer so the attachment can be reviewed immediately.
+
+A conversation holds up to **eight images total**, with a maximum of three per message, 8,000,000 data-URL characters per image, and 20,000,000 across the conversation. The app enforces these bounds independently of provider limits. Earlier images are sent again on follow-ups, so the safeguard bounds memory, request size, and repeated image input costs. Use **New conversation** (Alt+N in 0.2.4 source) for the next unrelated image; the model/provider may have additional limits.
 
 In **Browser assist**, select **Set up assistant browser** once to download optional Chromium. This uses the bundled desktop runtime. Open a website, select its tab in the visible Chromium window, and choose **Read page**. Review the text, then **Attach to question** if you want it sent with your message. To write into a page, choose a supported field, review the exact text, and select **Fill selected field**. You submit in Chromium. Website input events may save drafts or trigger site behavior. See [browser boundaries](BROWSER.md).
 

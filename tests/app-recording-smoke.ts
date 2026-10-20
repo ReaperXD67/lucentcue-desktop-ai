@@ -311,6 +311,7 @@ try {
       ...DEFAULT_SETTINGS,
       shortcut: 'Control+Alt+Shift+F11',
       captureShortcut: 'Control+Alt+Shift+F10',
+      newConversationShortcut: 'Control+Alt+Shift+F9',
       theme: 'light',
       companionOpacity: 1,
     }),
@@ -369,10 +370,15 @@ try {
     ({ globalShortcut }, settings) => [
       globalShortcut.isRegistered(settings.shortcut),
       globalShortcut.isRegistered(settings.captureShortcut),
+      globalShortcut.isRegistered(settings.newConversationShortcut),
     ],
     state.settings,
   );
-  assert.deepEqual(testBindings, [true, true], 'The uncommon test shortcuts must be available.');
+  assert.deepEqual(
+    testBindings,
+    [true, true, true],
+    'The uncommon test shortcuts must be available.',
+  );
   await renderer.waitForFunction(() => document.documentElement.dataset.theme === 'light');
 
   const boundary = await application.evaluate(
@@ -1048,7 +1054,11 @@ try {
     isolatedEmptyProfile: true,
     providerCompletions: requests.completions,
     networkMockInstalledBeforeApplication: true,
-    configuredTestShortcuts: [state.settings.shortcut, state.settings.captureShortcut],
+    configuredTestShortcuts: [
+      state.settings.shortcut,
+      state.settings.captureShortcut,
+      state.settings.newConversationShortcut,
+    ],
     theme: 'light',
     companionOpacity: 1,
     captureAPI:

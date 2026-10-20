@@ -78,6 +78,9 @@ const preview: DesktopAPI = {
   onCapture() {
     return () => {};
   },
+  onNewConversation() {
+    return () => {};
+  },
   async saveConversations(conversations) {
     if (previewState.settings.saveHistory) previewState.conversations = conversations;
   },

@@ -90,6 +90,15 @@ function toggle(): void {
   if (window?.isVisible() && !window.isMinimized()) window.hide();
   else show();
 }
+function newConversation(): void {
+  // Do not let a screenshot started in the previous conversation arrive in a
+  // fresh draft. The user can press again once the capture/chooser has closed.
+  if (capturing || !window || window.isDestroyed()) return;
+  for (const controller of active.values()) controller.abort();
+  active.clear();
+  setWindowMode('companion');
+  window.webContents.send('app:new-conversation');
+}
 function setWindowMode(next: WindowMode): void {
   if (!window || window.isDestroyed()) throw new Error('The application window is unavailable.');
   if (next !== windowMode) {
@@ -175,33 +184,37 @@ function installShortcuts(next: Settings, previous?: Settings): void {
   if (
     previous?.shortcut === next.shortcut &&
     previous.captureShortcut === next.captureShortcut &&
+    previous.newConversationShortcut === next.newConversationShortcut &&
     globalShortcut.isRegistered(next.shortcut) &&
-    globalShortcut.isRegistered(next.captureShortcut)
+    globalShortcut.isRegistered(next.captureShortcut) &&
+    globalShortcut.isRegistered(next.newConversationShortcut)
   )
     return;
-  const handlers = new Map<string, () => void>([
-    [next.shortcut, toggle],
-    [
-      next.captureShortcut,
-      () => {
-        void captureScreen()
-          .then((attachment) => {
-            show();
-            window?.webContents.send('app:captured', attachment);
-          })
-          .catch((error) => {
-            if (String(error?.message) === 'Screenshot cancelled.') return;
-            show();
-            void dialog.showMessageBox(window!, {
-              type: 'error',
-              title: 'Screenshot unavailable',
-              message: String(error?.message || 'Could not capture the display.'),
-            });
-          });
-      },
-    ],
-  ]);
-  const old = previous ? [previous.shortcut, previous.captureShortcut] : [];
+  const capture = () => {
+    void captureScreen()
+      .then((attachment) => {
+        show();
+        window?.webContents.send('app:captured', attachment);
+      })
+      .catch((error) => {
+        if (String(error?.message) === 'Screenshot cancelled.') return;
+        show();
+        void dialog.showMessageBox(window!, {
+          type: 'error',
+          title: 'Screenshot unavailable',
+          message: String(error?.message || 'Could not capture the display.'),
+        });
+      });
+  };
+  const bindings = (settings: Settings) =>
+    new Map<string, () => void>([
+      [settings.shortcut, toggle],
+      [settings.captureShortcut, capture],
+      [settings.newConversationShortcut, newConversation],
+    ]);
+  const handlers = bindings(next);
+  const oldHandlers = previous ? bindings(previous) : new Map<string, () => void>();
+  const old = [...oldHandlers.keys()];
   const added: string[] = [];
   try {
     // Keep old bindings registered until all genuinely new bindings succeed.
@@ -217,18 +230,38 @@ function installShortcuts(next: Settings, previous?: Settings): void {
     for (const accelerator of added) globalShortcut.unregister(accelerator);
     throw error;
   }
-  // Rebind reused accelerators too, allowing toggle/capture to swap safely.
+  // Rebind reused accelerators too, allowing all three actions to swap safely.
   for (const accelerator of old) globalShortcut.unregister(accelerator);
-  for (const [accelerator, callback] of handlers)
-    if (old.includes(accelerator)) {
-      if (!globalShortcut.register(accelerator, callback)) {
-        for (const registered of handlers.keys()) globalShortcut.unregister(registered);
-        if (previous) installShortcuts(previous);
-        throw new Error(
-          `The shortcut ${accelerator} could not be registered. Previous shortcuts were restored.`,
-        );
+  let failed = '';
+  try {
+    for (const [accelerator, callback] of handlers)
+      if (old.includes(accelerator)) {
+        failed = accelerator;
+        if (!globalShortcut.register(accelerator, callback))
+          throw new Error('Registration failed.');
       }
+  } catch {
+    for (const registered of handlers.keys()) globalShortcut.unregister(registered);
+    const restored = [...oldHandlers]
+      .map(([key, handler]) => {
+        try {
+          return globalShortcut.register(key, handler);
+        } catch {
+          return false;
+        }
+      })
+      .every(Boolean);
+    if (!restored) {
+      // Never strand a tray-less window when the OS also refuses rollback.
+      setTrayVisible(true);
+      show();
     }
+    throw new Error(
+      restored
+        ? `The shortcut ${failed} could not be registered. Previous shortcuts were restored.`
+        : `The shortcut ${failed} could not be registered, and some previous shortcuts could not be restored. The tray icon is visible; choose different shortcuts in Settings.`,
+    );
+  }
 }
 
 async function captureScreen(): Promise<Attachment> {

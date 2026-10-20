@@ -19,6 +19,12 @@ const providerNames: Record<Provider, string> = {
   openai: 'OpenAI',
   gemini: 'Gemini',
 };
+const shortcutLabels = {
+  shortcut: 'Show / hide shortcut',
+  captureShortcut: 'Screenshot shortcut',
+  newConversationShortcut: 'New conversation shortcut',
+} as const;
+const shortcutFields = Object.keys(shortcutLabels) as (keyof typeof shortcutLabels)[];
 const message = (error: unknown) =>
   error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
@@ -134,7 +140,7 @@ export default function SettingsPanel({
     setSaveError('');
     setSaved(false);
     const errors: Record<string, string> = {};
-    for (const name of ['shortcut', 'captureShortcut'] as const) {
+    for (const name of shortcutFields) {
       if (
         !/^(?:(?:Alt|Option|Control|Ctrl|Command|Cmd|CommandOrControl|CmdOrCtrl|Super|Meta|Shift)\+)+[^+]+$/i.test(
           draft[name].trim(),
@@ -143,8 +149,14 @@ export default function SettingsPanel({
         errors[name] = 'Include a modifier and key, for example Alt+W or Command+J.';
       }
     }
-    if (draft.shortcut.trim().toLowerCase() === draft.captureShortcut.trim().toLowerCase())
-      errors.captureShortcut = 'Choose a different screenshot shortcut.';
+    for (const [index, name] of shortcutFields.entries()) {
+      if (
+        shortcutFields
+          .slice(0, index)
+          .some((other) => draft[name].trim().toLowerCase() === draft[other].trim().toLowerCase())
+      )
+        errors[name] = 'Choose a different shortcut for each action.';
+    }
     if (!draft.systemPrompt.trim()) errors.systemPrompt = 'Enter instructions for your assistant.';
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
@@ -158,7 +170,11 @@ export default function SettingsPanel({
         if (draft[name] !== state.settings[name])
           Object.assign(changes, {
             [name]:
-              name === 'shortcut' || name === 'captureShortcut' ? draft[name].trim() : draft[name],
+              name === 'shortcut' ||
+              name === 'captureShortcut' ||
+              name === 'newConversationShortcut'
+                ? draft[name].trim()
+                : draft[name],
           });
       }
       const validated = await onSave(changes);
@@ -393,10 +409,10 @@ export default function SettingsPanel({
               {saveError}
             </p>
           )}
-          {(['shortcut', 'captureShortcut'] as const).map((name) => (
+          {shortcutFields.map((name) => (
             <div key={name}>
               <label className="field" htmlFor={`${id}-${name}`}>
-                {name === 'shortcut' ? 'Show / hide shortcut' : 'Screenshot shortcut'}
+                {shortcutLabels[name]}
                 <input
                   id={`${id}-${name}`}
                   value={draft[name]}
@@ -412,7 +428,10 @@ export default function SettingsPanel({
                 id={`${id}-${name}-help`}
                 className={fieldErrors[name] ? 'form-error' : 'field-help'}
               >
-                {fieldErrors[name] || 'Use + between keys, e.g. Alt+W or Command+Shift+S.'}
+                {fieldErrors[name] ||
+                  (name === 'newConversationShortcut'
+                    ? 'Opens a fresh companion chat, including when LucentCue is hidden. Use + between keys, e.g. Alt+N.'
+                    : 'Use + between keys, e.g. Alt+W or Command+Shift+S.')}
               </p>
             </div>
           ))}
